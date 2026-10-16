@@ -227,7 +227,7 @@ const ICONOS={"Solar":"🟩","Solar + Mejora":"🏠","Apartamento o local":"🏢
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-15-g";
+const APP_VER="2026-10-15-h";
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -363,8 +363,10 @@ function render(){
   try{localStorage.setItem("nlc_paso",String(paso))}catch(e){}   /* al reabrir, la app vuelve a este paso */
   const s=SECC[R[paso]];
   const cuerpo=R[paso]==="FOTOS"?fotosHTML():R[paso]==="CANVAS"?canvasHTML():(R[paso]==="REV"?`<div class="msg">Toca el estado de cada renglón. Lo que dejes sin marcar no se envía y lo completas en el Word. Volver a tocar un estado lo quita.</div>`:"")+`<div class="card">${s.f.map(campo).join("")}</div>`;
-  document.getElementById("app").innerHTML=`<div class="paso">Paso ${paso+1} de ${R.length}</div><h2>${s.t}</h2>`+cuerpo+(R[paso]==="FOTOS"?`<div class="msg">Al tocar «Guardar expediente», todo queda dentro del teléfono (aunque no tengas internet). Después lo guardas en Descargas y lo subes a OneDrive (carpeta Recepcion).</div>`:"")+(R[paso]==="INICIO"?`<div id="instalarHueco"></div><button type="button" class="nuevo" id="nuevoExp">🗑 Empezar expediente nuevo (borra todo lo guardado)</button>`:"");
+  document.getElementById("app").innerHTML=`<div class="paso">Paso ${paso+1} de ${R.length}</div><h2>${s.t}</h2>`+cuerpo+(R[paso]==="FOTOS"||R[paso]==="INICIO"&&hayDatos()?`<button type="button" class="cvbtn alt" id="borrB" style="margin-top:14px">💾 Guardar borrador para seguir en otro aparato</button>`:"")+(R[paso]==="FOTOS"?`<div class="msg">Al tocar «Guardar expediente», todo queda dentro del teléfono (aunque no tengas internet). Después lo guardas en Descargas y lo subes a OneDrive (carpeta Recepcion).</div>`:"")+(R[paso]==="INICIO"?`<div id="instalarHueco"></div><button type="button" class="cvbtn alt" id="abrirExp" style="margin-top:14px">📂 Abrir expediente o borrador (.zip)</button><input type="file" id="abrirIn" accept=".zip,application/zip,application/x-zip-compressed" hidden><div class="gpsr" id="abrirMsg"></div><button type="button" class="nuevo" id="nuevoExp">🗑 Empezar expediente nuevo (borra todo lo guardado)</button>`:"");
   if(R[paso]==="INICIO") cola.listar().then(L=>{ if(!L.length||vista==="cola"||ruta()[paso]!=="INICIO"||document.getElementById("colaB")) return; const b=document.createElement("button"); b.type="button"; b.id="colaB"; b.className="cvbtn alt"; b.style.marginTop="14px"; b.textContent="📦 Expedientes guardados en el teléfono ("+L.length+")"; b.onclick=()=>{vista="cola";ponerTrampa();render();}; document.getElementById("app").appendChild(b); });
+  const ab=document.getElementById("abrirExp"), ai=document.getElementById("abrirIn"); if(ab&&ai){ ab.onclick=()=>{ai.value="";ai.click();}; ai.onchange=()=>abrirExpediente(ai.files&&ai.files[0]); }
+  const bb=document.getElementById("borrB"); if(bb) bb.onclick=guardarBorrador;
   const nb=document.getElementById("nuevoExp"); if(nb) nb.onclick=()=>{ if(confirm("¿Borrar todos los datos, el croquis y las fotos de este expediente y empezar de cero?")){ try{localStorage.removeItem("nlc_form");localStorage.removeItem("nlc_canvas");localStorage.removeItem("nlc_paso");}catch(e){} fotosBD.limpiar().then(()=>location.reload()); } };
   document.querySelectorAll("[data-chip]").forEach(g=>g.addEventListener("click",e=>{
     const b=e.target.closest("button[data-v]"); if(!b) return;
@@ -571,7 +573,7 @@ function nombreFoto(r,i,f){const x=rolesActuales().find(y=>y[0]===r); const p=x?
 const DOC_UNICO=/^(Titulo|Plano catastral|Documento|Ubicacion|Localizacion|Matricula)$/;  /* 2026-10-15-g: número entre paréntesis, así el Word agrupa la sección */
 function bajar(blob,nombre){const a=document.createElement("a"); const u=URL.createObjectURL(blob); a.href=u; a.download=nombre; document.body.appendChild(a); a.click(); setTimeout(()=>{a.remove(); URL.revokeObjectURL(u);},60000);}
 const MAXZIP=44*1000*1000;   /* el receptor acepta 45.000.000 bytes: se deja margen */
-async function construirPaquete(){
+async function construirPaquete(borrador){
   const j=armarJSON();
   const base=(D_.PROPIETARIO||D_.SOLICITANTE||"Expediente").replace(/[^\wÁÉÍÓÚÑáéíóúñ ]/g,"").trim().replace(/ +/g,"_")||"Expediente";
   const jsonTxt=JSON.stringify(j,null,2);
@@ -580,17 +582,67 @@ async function construirPaquete(){
   /* El receptor pide: datos.json y las fotos en la RAIZ del zip, con el nombre de su rol. El croquis va tambien en la raiz como "Croquis nivel N.png" (contrato v2.1: el receptor lo aparta en la subcarpeta Croquis/). */
   const croquis=[]; for(let l=1;l<=MAX_LEVELS&&ruta().includes("CANVAS");l++){ const cn=cvCroquis(l); if(cn){ const b=await new Promise(res=>cn.toBlob(res,"image/png")); if(b) croquis.push([`Croquis nivel ${l}.png`,b]); } }
   const armar=async(lado,cal)=>{
-    const z=new JSZip(); z.file("datos.json",jsonTxt); croquis.forEach(([n,b])=>z.file(n,b));
+    const z=new JSZip(); croquis.forEach(([n,b])=>z.file(n,b)); const mf={};
     for(const [r,arr] of Object.entries(fotos)){ if(!rolesActuales().some(x=>x[0]===r)) continue;
-      for(let i=0;i<arr.length;i++){ let f=arr[i]; if(lado&&/^image\//.test(f.type)) f=(await reducirFoto(f,lado,cal))||f; z.file(nombreFoto(r,i,f),f); }
+      for(let i=0;i<arr.length;i++){ let f=arr[i]; if(lado&&/^image\//.test(f.type)) f=(await reducirFoto(f,lado,cal))||f; const nm=nombreFoto(r,i,f); z.file(nm,f); (mf[r]=mf[r]||[]).push(nm); }
     }
+    /* 2026-10-15-h: "app" guarda todo lo escrito (también lo que no va al Word todavía) para «📂 Abrir expediente». El receptor lo ignora. */
+    z.file("datos.json",borrador?JSON.stringify(Object.assign({},j,{form_id:"BORRADOR_NO_PROCESAR",app:estadoApp(mf)}),null,2):JSON.stringify(Object.assign({},j,{app:estadoApp(mf)}),null,2));
     return z.generateAsync({type:"blob"});
   };
   let blob=await armar(0), aviso="";
   if(blob.size>MAXZIP){ blob=await armar(1400,0.7); aviso="Las fotos se redujeron más para que el paquete no pase de 44 MB."; }
   if(blob.size>MAXZIP){ blob=await armar(1000,0.6); }
   if(blob.size>MAXZIP) return {excede:true,aviso:"El expediente pesa "+(blob.size/1e6).toFixed(1)+" MB aun reduciendo las fotos, y el máximo es 44 MB. NO se guardó.\n\nQuita algunas fotos o PDF grandes (toca la × roja de la miniatura) y vuelve a tocar «Guardar expediente». Tus datos siguen aquí."};
-  return {blob,nombre:`${base}_${sello}.zip`,aviso};
+  return {blob,nombre:`${borrador?"BORRADOR_":""}${base}_${sello}.zip`,aviso};
+}
+/* ===== 2026-10-15-h: borrador y «📂 Abrir expediente» (seguir el mismo expediente en otro teléfono o en la PC) ===== */
+function estadoApp(mf){ let cv=null; try{cv=JSON.parse(localStorage.getItem("nlc_canvas")||"null")}catch(e){} return {formato:"nlc-app-estado-v1",version_app:APP_VER,form:D_,canvas:cv,fotos:mf}; }
+function hayDatos(){ return Object.keys(D_).some(k=>k!=="FECHA_DE_INSPECCION"&&D_[k]!==""&&D_[k]!=null)||Object.values(fotos).some(a=>a&&a.length); }
+async function guardarBorrador(){
+  if(_exportando) return; if(_procesando){ alert("Espera: todavía se están preparando fotos."); return; }
+  if(!hayDatos()){ alert("Todavía no hay nada escrito en este expediente."); return; }
+  _exportando=true;
+  try{
+    const r=await construirPaquete(true);
+    if(r.excede){ alert(r.aviso); return; }
+    if(r.nombre.slice(-4)!==".zip"){ alert(r.aviso); return; }
+    const fl=new File([r.blob],r.nombre,{type:"application/zip"});
+    if(puedeCompartirZip()&&/Android|iPhone|iPad/i.test(navigator.userAgent)){
+      try{ await navigator.share({files:[fl],title:r.nombre}); alert("✔ Borrador compartido: «"+r.nombre+"».\n\nGuárdalo en OneDrive en la carpeta NLC_Integral_V1_3 › Borradores (NO en Recepcion).\nEn la PC: abre la app, toca «📂 Abrir expediente o borrador» y elígelo.\n\nTodo sigue también aquí en el teléfono."); return; }
+      catch(e){ if(e&&e.name==="AbortError") return; }
+    }
+    bajar(r.blob,r.nombre);
+    alert("✔ Borrador guardado en Descargas: «"+r.nombre+"».\n\nSúbelo a OneDrive, carpeta NLC_Integral_V1_3 › Borradores (NO en Recepcion).\nEn la PC: abre la app, toca «📂 Abrir expediente o borrador» y elígelo.\n\nTodo sigue también aquí.");
+  }catch(e){ alert("No se pudo armar el borrador ("+((e&&e.message)||e)+"). Tus datos siguen aquí."); }
+  finally{ _exportando=false; }
+}
+const MIME_EXT={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",heic:"image/heic",pdf:"application/pdf"};
+async function abrirExpediente(file){
+  if(!file) return;
+  if(typeof JSZip==="undefined"){ alert("No se puede abrir el .zip en este aparato."); return; }
+  let z, obj=null;
+  try{ z=await JSZip.loadAsync(file); }catch(e){ alert("«"+file.name+"» no es un .zip válido."); return; }
+  const js=Object.keys(z.files).filter(n=>/\.json$/i.test(n)&&!/[\\/]/.test(n));
+  if(js.length===1){ try{ obj=JSON.parse(await z.file(js[0]).async("string")); }catch(e){} }
+  const a=obj&&obj.app;
+  if(!a||a.formato!=="nlc-app-estado-v1"||!a.form||typeof a.form!=="object"){ alert("Este .zip no se puede abrir: lo hizo una versión de la app anterior a la 2026-10-15-h, o no es un expediente de la app NLC."); return; }
+  if(hayDatos()&&!confirm("Tienes un expediente a medias en este aparato.\n\n¿Reemplazarlo por «"+file.name+"»?\n\n(Los expedientes ya guardados en la lista 📦 no se tocan.)")) return;
+  const m=document.getElementById("abrirMsg"); if(m) m.textContent="⏳ Abriendo «"+file.name+"»… no cierres la app";
+  const nuevas=[]; let faltan=0;
+  for(const [rol,lista] of Object.entries(a.fotos||{})){ if(!Array.isArray(lista)) continue;
+    for(const nm of lista){ const e=z.file(nm); if(!e){ faltan++; continue; }
+      const ext=(/\.([a-z0-9]+)$/i.exec(nm)||[])[1]||"jpg", tipo=MIME_EXT[ext.toLowerCase()]||"image/jpeg";
+      nuevas.push([rol,new File([await e.async("blob")],nm,{type:tipo})]); } }
+  await fotosBD.limpiar();
+  for(const [rol,f] of nuevas){ if((await fotosBD.guardar(rol,f))==null){ alert("No se pudieron guardar las fotos en este aparato (memoria llena o hay otra ventana de la app abierta). No se cambió nada más."); if(m) m.textContent=""; return; } }
+  try{
+    localStorage.setItem("nlc_form",JSON.stringify(a.form));
+    if(a.canvas) localStorage.setItem("nlc_canvas",JSON.stringify(a.canvas)); else localStorage.removeItem("nlc_canvas");
+    localStorage.setItem("nlc_paso","0"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_fecha_auto");
+  }catch(e){ alert("No se pudieron guardar los datos en este aparato."); return; }
+  alert("✔ Abierto «"+file.name+"»: "+nuevas.length+" foto(s)"+(faltan?" ("+faltan+" no venían en el .zip)":"")+".\n\nRevisa, completa lo que falte y toca «Guardar expediente» al final, como siempre."+(obj.form_id==="BORRADOR_NO_PROCESAR"?"":"\n\nOjo: si este expediente ya se envió antes, el nuevo saldrá con otro número."));
+  location.reload();
 }
 const marcarListo=()=>{try{localStorage.setItem("nlc_done","1")}catch(e){}};
 const yaGuardado=()=>{try{return localStorage.getItem("nlc_done")==="1"}catch(e){return false}};
