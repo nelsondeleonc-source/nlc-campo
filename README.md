@@ -1,4 +1,4 @@
-# App de campo NLC — versión 2026-10-15-e
+# App de campo NLC — versión 2026-10-15-g
 
 Formulario de campo de tasaciones de NLC Arquitectos (Arq. Nelson de León C.). Funciona en el teléfono, también sin internet, y guarda cada expediente como un paquete `.zip` que se sube a OneDrive › `NLC_Integral_V1_3` › `Recepcion`.
 
