@@ -326,10 +326,10 @@ const T=(k,l)=>[k,l,"t"], L=(k,l)=>[k,l,"l"], N=(k,l)=>[k,l,"n"], D=(k,l)=>[k,l,
 
 const HOUSE=[T("SOLICITANTE","Nombre del solicitante"),O("BANCO","Banco destinatario",BANCOS),T("PROPIETARIO","Nombre del propietario"),L("DIRECCION_COMPLETA","Dirección del inmueble (calle, número, sector, barrio o residencial)"),O("PROVINCIA","Provincia del inmueble",PROV),O("MUNICIPIO","Municipio del inmueble",MUN)];
 const TER=[L("DESCRIPCION_TECNICA_COMPLETA","Descripción física del terreno"),
- D("DIMENSION_LINDERO_NORTE","Norte — Medida (m)"),T("LINDERO_NORTE","Norte — Colindante"),
- D("DIMENSION_LINDERO_SUR","Sur — Medida (m)"),T("LINDERO_SUR","Sur — Colindante"),
- D("DIMENSION_LINDERO_ESTE","Este — Medida (m)"),T("LINDERO_ESTE","Este — Colindante"),
- D("DIMENSION_LINDERO_OESTE","Oeste — Medida (m)"),T("LINDERO_OESTE","Oeste — Colindante"),
+ T("LINDERO_NORTE","Norte — Colindante"),D("DIMENSION_LINDERO_NORTE","Norte — Medida (m)"),
+ T("LINDERO_SUR","Sur — Colindante"),D("DIMENSION_LINDERO_SUR","Sur — Medida (m)"),
+ T("LINDERO_ESTE","Este — Colindante"),D("DIMENSION_LINDERO_ESTE","Este — Medida (m)"),
+ T("LINDERO_OESTE","Oeste — Colindante"),D("DIMENSION_LINDERO_OESTE","Oeste — Medida (m)"),
  O("TOPOGRAFIA","Topografía del terreno",TOPO)];
 const INM=[T("COORDENADAS","Coordenadas del inmueble y sistema de referencia"),T("DESIGNACION_CATASTRAL","Designación catastral"),O("DOCUMENTO_BASE","Tipo de documentación legal",DOCS),F("FECHA_DE_REGISTRO","Fecha de registro"),T("MATRICULA_LIBRO_FOLIO","Matrícula, libro y folio"),D("SUPERFICIE_REGISTRADA_M_2","Superficie registrada en el título (m²)"),
  O("CALIDAD_DE_LA_VECINDAD","Calidad de la vecindad",E6),O("CLASE_SOCIAL","Clase social",["Alta","Media","Baja"]),O("CONSERVACION_DE_LA_VECINDAD","Conservación de la vecindad",E6),O("ETAPA_DESARROLLO_SECTOR","Desarrollo del sector",["Estable","Crecimiento","Cambio de uso","Consolidación","Decrecimiento", "Otro"]),
@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-18-w"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-18-x"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
