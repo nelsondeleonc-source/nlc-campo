@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-18-z3"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-18-z4"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -946,10 +946,13 @@ async function copiarExif(orig,nuevo){
 /* Fotos guardadas en el navegador (IndexedDB) para que sobrevivan a una recarga. Cada foto recuerda su id para poder quitarla. */
 const fotosBD={
   _db:null,
-  abrir(){return new Promise(res=>{ if(this._db) return res(this._db); try{
+  abrir(){return new Promise(res0=>{ if(this._db) return res0(this._db); let hecho=false; const res=v=>{ if(!hecho){ hecho=true; res0(v); } };
+    /* 2026-10-18-z4: si el almacén de fotos no contesta en 8 s (otra ventana de la app lo tiene ocupado) se avisa en vez de quedarse colgada */
+    const to=setTimeout(()=>{ res(null); avisoOtraVentana(true); },8000); try{
     const q=indexedDB.open("nlc_fotos",1); q.onupgradeneeded=()=>q.result.createObjectStore("f",{keyPath:"id",autoIncrement:true});
-    q.onsuccess=()=>{this._db=q.result;res(this._db)}; q.onerror=()=>res(null);
-  }catch(e){res(null)} });},
+    q.onsuccess=()=>{ clearTimeout(to); this._db=q.result; this._db.onversionchange=()=>{ try{this._db.close()}catch(e){} this._db=null; }; res(this._db); };
+    q.onerror=()=>{ clearTimeout(to); res(null); }; q.onblocked=()=>{ avisoOtraVentana(true); };
+  }catch(e){ clearTimeout(to); res(null); } });},
   async _tx(modo,fn){const db=await this.abrir(); if(!db) return null; return new Promise(res=>{try{const t=db.transaction("f",modo); let out=null; fn(t.objectStore("f"),v=>{out=v}); t.oncomplete=()=>res(out); t.onerror=()=>res(null); t.onabort=()=>res(null);}catch(e){res(null)}});},
   guardar(rol,f){return this._tx("readwrite",(st,o)=>{const q=st.add({rol,nombre:f.name,tipo:f.type,blob:f}); q.onsuccess=()=>o(q.result);});},
   borrar(id){return this._tx("readwrite",st=>st.delete(id));},
@@ -957,6 +960,13 @@ const fotosBD={
   async todo(){const r=await this._tx("readonly",(st,o)=>{const q=st.getAll(); q.onsuccess=()=>o(q.result||[]);}); return r||[];},
   limpiar(){return this._tx("readwrite",st=>st.clear());}
 };
+/* ===== 2026-10-18-z4 · aviso si la app está abierta en dos ventanas (las fotos se guardan en un solo sitio del aparato) ===== */
+function avisoOtraVentana(fuerte){ try{ let d=document.getElementById("avisoVentana"); if(!d){ d=document.createElement("div"); d.id="avisoVentana";
+  d.style.cssText="position:sticky;top:0;z-index:50;background:#fde68a;color:#111;padding:10px 12px;font-weight:bold;border-bottom:2px solid #b45309";
+  document.body.insertBefore(d,document.body.firstChild); }
+  d.textContent=fuerte?"⚠ Las fotos no se pueden guardar ahora: la app está abierta en otra ventana o pestaña. Ciérrala y vuelve a abrir esta.":"⚠ La app está abierta en otra ventana o pestaña. Usa solo una para no perder fotos.";
+  }catch(e){} }
+try{ const _bc=new BroadcastChannel("nlc_app_campo"); _bc.onmessage=e=>{ if(e.data==="hola"){ _bc.postMessage("aqui"); avisoOtraVentana(false); } else if(e.data==="aqui") avisoOtraVentana(false); }; _bc.postMessage("hola"); }catch(e){}
 async function fotosRestaurar(){
   const todo=await fotosBD.todo(); todo.sort((a,b)=>a.id-b.id);
   todo.forEach(x=>{const f=new File([x.blob],x.nombre,{type:x.tipo}); f._id=x.id; (fotos[x.rol]=fotos[x.rol]||[]).push(f);});
