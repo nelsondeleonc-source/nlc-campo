@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-17-u";
+const APP_VER="2026-10-18-v";
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -1057,7 +1057,7 @@ async function exportar(){
 }
 /* ===== Cola: los expedientes guardados esperan en el teléfono hasta que se suben a OneDrive (o se envían, cuando exista ENDPOINT) ===== */
 let ENDPOINT="https://script.google.com/macros/s/AKfycbxQC1rf2L2tZcSYOXhhXf44IL3FucPqn8cbg1N-MfYcpM75BXNmX8orkhZ90dVAdMsW/exec";   /* receptor web del motor: si está apagado o falla, el expediente sigue en el teléfono y se usa «Guardar en el teléfono» */
-const ENVIO_CLAVE="_sJIpgK29RE-bgCmwOmSPYh8DBucmgfsk_vuCEe6";
+const ENVIO_CLAVE="5465eddbc2b442bd9fe420ab90431acf5f4c6e57987b46f9bf1aba7ae7d95cd2";
 const ENVIO_MAX=30000000;
 let ENLACE_RECEPCION="https://nlcarquitectos-my.sharepoint.com/:f:/g/personal/lordnlc_nlcarquitectos_onmicrosoft_com/IgDNjJU-7H9SQbXVw3lwnXooAYlZPetBGr3ts6TAqAb0qY8";   /* enlace de «Solicitud de archivos» de OneDrive sobre la carpeta Recepcion: si se rellena, aparece «☁ Subir a Recepción» */
 /* Dos almacenes: "p" guarda el zip y "m" solo nombre, fecha, estado y tamaño (la lista no carga los zip en memoria). */
