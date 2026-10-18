@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-18-y"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-18-z"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -725,7 +725,32 @@ function ambEnganchar(){
     }
   });
 }
+/* ===== 2026-10-18-z · Características constructivas armadas solas + materiales por nivel + «Otro» se aprende al salir ===== */
+const CAR_K="CARACTERISTICAS_CONSTRUCTIVAS";
+const NIV_KEYS={"Q_SM_PAREDES":"Paredes","Q_SM_PISOS":"Pisos"};
+const CAR_ORDEN=[["SISTEMA_ESTRUCTURAL","Sistema estructural"],["PAREDES","Paredes"],["ENTREPISO","Entrepiso"],["TECHOS","Techos"],["PISOS","Pisos"],["PUERTA_PRINCIPAL","Puerta principal"],["PUERTAS_INTERIORES","Puertas interiores"],["CLOSETS","Clósets"],["VENTANAS","Ventanas"],["PROTECCION_HIERRO","Protección de hierro"],["TERMINACION","Terminación"]];
+function nivN(){ return Math.max(1,ambNivParse(D_[AMB_K]||"").length); }
+function carVal(k){ const v=D_[k]; if(!v) return ""; return ES_OTRO(v)?String(D_[k+"__OTRO"]||"").trim():String(v); }
+function carBaja(t){ t=String(t||""); return (t.length>1&&t[0]===t[0].toUpperCase()&&t[1]===t[1].toLowerCase()&&/[A-ZÁÉÍÓÚÑ]/.test(t[0]))?t[0].toLowerCase()+t.slice(1):t; }
+function carLista(a){ return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" y "+a[a.length-1]; }
+function carNiv(k){ const v1=carVal(k); if(!v1||!NIV_KEYS[k]) return v1; const n=nivN(); if(n<2) return v1;
+  const g=[]; for(let i=1;i<=n;i++){ let v=i===1?v1:(D_[k+"__N"+i]||""); if(ES_OTRO(v)) v=""; if(!v) v=v1;
+    const x=g.find(y=>y.v===v); if(x) x.n.push(AMB_ORD[i-1]); else g.push({v:v,n:[AMB_ORD[i-1]]}); }
+  if(g.length===1) return v1;
+  return g.map(y=>carBaja(y.v)+" en el "+carLista(y.n)+" nivel").join(", "); }
+function carTexto(){ const a=[]; for(const [c,n] of CAR_ORDEN){ const v=carNiv("Q_SM_"+c); if(v) a.push(n+": "+(a.length||c!=="SISTEMA_ESTRUCTURAL"?carBaja(v):carBaja(v))); }
+  return a.length?a.join("; ")+".":""; }
+function carActiva(){ try{ return ruta().includes("SM_MAT"); }catch(e){ return false; } }
+function carRefrescar(forzar){ if(!carActiva()) return; const t=carTexto(), cur=String(D_[CAR_K]||""), ult=String(D_.CAR_AUTO_ULT||"");
+  if(forzar||!cur.trim()||cur===ult){ if(t!==cur){ D_[CAR_K]=t; D_.CAR_AUTO_ULT=t; save(); const ta=document.getElementById("f_"+CAR_K); if(ta) ta.value=t; } else if(ult!==t){ D_.CAR_AUTO_ULT=t; save(); } } }
+function nivBloque(k,opts){ const nm=NIV_KEYS[k], n=nivN(); if(!nm||n<2) return "";
+  return `<div class="ambbox"><div class="ambtit">${nm} por nivel — la casilla de arriba es el 1er nivel; aquí cambia solo los niveles que sean distintos</div>`+
+    Array.from({length:n-1},(_,j)=>{ const i=j+2, kk=k+"__N"+i;
+      return `<label for="f_${kk}">${nm} del ${AMB_ORD[i-1]} nivel</label><select id="f_${kk}" data-k="${kk}"><option value="">— igual que el 1er nivel —</option>${opts.filter(x=>!ES_OTRO(x)).map(x=>`<option value="${esc(x)}"${x===(D_[kk]||"")?" selected":""}>${esc(x)}</option>`).join("")}</select>`; }).join("")+`</div>`; }
+function aprAprenderYa(k,t){ for(const id in SECC){ const f=SECC[id].f.find(x=>x[0]===k); if(f&&f[2]==="o"){ aprAgregar(k,t,opcionesOficiales(f)); return; } } }
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-carauto]"); if(b){ carRefrescar(true); } });
 function campo(f){
+  if(f[0]===CAR_K) carRefrescar();
   let [k,l,t,o]=f; const v=D_[k]??"";
   if(f[4]==="g") return `<div class="revrow"><div class="revl">${esc(l)}</div><div class="chips" data-chip="${k}">${o.map(x=>`<button type="button" class="chip${x===v?" on":""}${aprEs(k,x)?" apr":""}" data-v="${esc(x)}">${esc(aprLbl(k,x))}</button>`).join("")}</div></div>`;
   const cd=(CT[tidActual()]||{})[k]; let hint="";
@@ -743,8 +768,10 @@ function campo(f){
     }else{
       h+=`<select id="f_${k}" data-k="${k}"><option value="">—</option>${opts.map(x=>`<option value="${esc(x)}"${x===v?" selected":""}>${esc(aprLbl(k,x))}</option>`).join("")}</select>`;
     }
+    h+=nivBloque(k,opts);
     if(opts.some(ES_OTRO)) h+=`<div data-otro-of="${k}"${ES_OTRO(v)?"":" hidden"}><input type="text" id="f_${k}__OTRO" data-k="${k}__OTRO" placeholder="Escribe cuál (así saldrá en el Word)" value="${esc(D_[k+"__OTRO"]||"")}"></div>`;
   }else if(t==="l"){ if(k===AMB_K) h+=ambCaja();
+    if(k===CAR_K&&carActiva()) h+=`<div class="chips amb" style="margin-bottom:6px"><button type="button" class="chip" data-carauto="1">↻ Armar desde mis respuestas de Materiales</button></div>`;
     h+=`<textarea id="f_${k}" data-k="${k}">${esc(v)}</textarea>`; }
   else if(t==="f") h+=`<input type="date" id="f_${k}" data-k="${k}" value="${esc(v)}">`;
   /* Números en campo de texto con teclado numérico: así la coma decimal no se pierde (antes «12,5» quedaba en 125). */
@@ -790,9 +817,11 @@ function render(){
     const k=el.dataset.k;
     el.addEventListener("input",()=>{
       D_[k]=el.value; save(); actualizarOtros();
+      if(/^Q_SM_/.test(k)) carRefrescar();
       if(el.dataset.num) revisarCampo(el,false);   /* mientras escribe solo se quita el rojo; se marca al salir del campo */
       if(k==="PROVINCIA"){D_.MUNICIPIO="";save();render();}
     });
+    if(/__OTRO$/.test(k)) el.addEventListener("change",()=>aprAprenderYa(k.slice(0,-6),el.value));
     if(el.dataset.num) el.addEventListener("change",()=>{
       const n=numNorm(el.value,el.dataset.num==="n"); if(n!=null&&n!==el.value){ el.value=n; D_[k]=n; save(); }
       revisarCampo(el,true);
