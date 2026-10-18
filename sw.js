@@ -4,7 +4,7 @@
 se actualiza cuando se entra por la dirección de la carpeta.
 - Las peticiones con cache:"no-store" (la comprobación de versión nueva que hace la página) van directo a la red.
 - Al cambiar CACHE (cada versión) se borran las copias viejas. */
-const VERSION = "2026-10-18-x";
+const VERSION = "2026-10-18-y";
 const CACHE = "nlc-form-" + VERSION;
 const BASE = ["./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
 self.addEventListener("install", e => {
