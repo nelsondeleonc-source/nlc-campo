@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-18-z4"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-18-z5"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -1157,6 +1157,7 @@ async function exportar(){
   _exportando=true; const nx=document.getElementById("next"); nx.disabled=true; nx.textContent="Guardando…";
   try{
     if(!validarAntesDeGuardar()) return;
+    { const inc=ruta().includes("CANVAS")?cvIncompletos():[]; if(inc.length&&!confirm("El croquis "+(inc.length>1?"de los niveles ":"del nivel ")+inc.join(", ")+" no está completo (falta alguna medida) y NO se va a mandar.\n\n¿Guardar el expediente así?")){ irA("CANVAS"); return; } }
     const r=await construirPaquete();
     if(!r.excede) aprRegistrar();
     if(r.excede){ alert(r.aviso); irA("FOTOS"); return; }
@@ -1257,7 +1258,10 @@ const LEVEL_COLORS={1:'#1a5490',2:'#e05c00',3:'#2d7a3e',4:'#9b2335',5:'#6b3fa0',
 let cvLevels={}, cvUndo={}, cvRedo={}, cvClosed={}, cvLevel=1, cvUsed=1, cvMode="draw", cvSel=null, cvSnap=false, cvCursor=null, cvDrag=null, cvStart=null, cvMoved=false, cvDragSnap=null, cv=null, cvBound=false;
 for(let i=1;i<=MAX_LEVELS;i++){cvLevels[i]=[];cvUndo[i]=[];cvRedo[i]=[];cvClosed[i]=false;}
 try{const s=JSON.parse(localStorage.getItem("nlc_canvas")||"null"); if(s&&s.levels){for(const k in s.levels)cvLevels[k]=s.levels[k]; if(s.closed)for(const k in s.closed)cvClosed[k]=!!s.closed[k]; cvUsed=s.used||1; if(s.mode)cvMode=s.mode;}}catch(e){}
-function cvSave(){try{localStorage.setItem("nlc_canvas",JSON.stringify({levels:cvLevels,closed:cvClosed,used:cvUsed,mode:cvMode}))}catch(e){}}
+/* 2026-10-18-z5: un nivel del croquis se puede marcar como «el solar» y no se suma al área de construcción */
+let cvSolarLv=0; try{ const s0=JSON.parse(localStorage.getItem("nlc_canvas")||"null"); if(s0&&s0.solar) cvSolarLv=+s0.solar||0; }catch(e){}
+function cvSave(){try{localStorage.setItem("nlc_canvas",JSON.stringify({levels:cvLevels,closed:cvClosed,used:cvUsed,mode:cvMode,solar:cvSolarLv}))}catch(e){}}
+function cvIncompletos(){ const out=[]; for(let l=1;l<=MAX_LEVELS;l++){ const p=cvLevels[l]; if(!p||p.length<3) continue; const r=cvCalc(l); if(!r||r.incomplete) out.push(l); } return out; }
 const cvLet=i=>String.fromCharCode(65+(i%26))+(i>=26?Math.floor(i/26):"");
 const cvPts=()=>cvLevels[cvLevel];
 const cvFmt=m=>String(+Number(m).toFixed(2));
@@ -1327,7 +1331,8 @@ function cvResumen(){
     const r=cvCalc(l), ok=r&&!r.incomplete;
     niv.push({nivel:l,area_m2:ok?+r.area.toFixed(2):null,perimetro_m:ok?+r.perimeter.toFixed(2):null,error_cierre_pct:ok?+r.pct.toFixed(2):null,
       puntos:p.map((q,i)=>({punto:cvLet(i),medida_m:q.measure,angulo_grados:q.angle==null?null:Math.round(q.angle*10)/10}))});
-    if(ok) tot+=r.area;
+    if(l===cvSolarLv) niv[niv.length-1].es_solar=true;
+    if(ok&&l!==cvSolarLv) tot+=r.area;
   }
   return {niv,tot};
 }
@@ -1510,7 +1515,9 @@ function cvUI(){
   const $=id=>document.getElementById(id); if(!$("cvLv")) return;
   const p=cvPts(), n=p.length, draw=cvMode==="draw", closed=!!cvClosed[cvLevel];
   document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("on",b.dataset.mode===cvMode));
-  $("cvLv").innerHTML=Array.from({length:cvUsed},(_,i)=>`<button type="button" data-lv="${i+1}" class="${i+1===cvLevel?"on":""}">Nivel ${i+1}</button>`).join("")+(cvUsed<MAX_LEVELS?`<button type="button" data-lv="add">+ Nivel</button>`:"");
+  $("cvLv").innerHTML=Array.from({length:cvUsed},(_,i)=>`<button type="button" data-lv="${i+1}" class="${i+1===cvLevel?"on":""}">${i+1===cvSolarLv?"Solar":"Nivel "+(i+1)}</button>`).join("")+(cvUsed<MAX_LEVELS?`<button type="button" data-lv="add">+ Nivel</button>`:"")+
+    `<label style="display:flex;gap:6px;align-items:center;font-size:14px;margin-top:6px;width:100%"><input type="checkbox" data-solar ${cvSolarLv===cvLevel?"checked":""}> Este dibujo es el solar (no se suma al área de construcción)</label>`;
+  { const sx=$("cvLv").querySelector("[data-solar]"); if(sx) sx.onchange=()=>{ cvSolarLv=sx.checked?cvLevel:(cvSolarLv===cvLevel?0:cvSolarLv); cvSave(); cvUI(); cvDraw(); }; }
   $("cvLv").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     if(b.dataset.lv==="add"){cvUsed=Math.min(MAX_LEVELS,cvUsed+1);cvLevel=cvUsed;}else cvLevel=+b.dataset.lv;
     cvSel=null; cvSave(); cvUI(); cvDraw();
@@ -1545,7 +1552,7 @@ function cvUI(){
   } else if(n>=3) res=`<div class="msg">Falta alguna medida (incluida la del lado de cierre) para calcular el área.</div>`;
   const cr=cvResumen(); let tot="";
   if(cr.niv.some(x=>x.area_m2!=null)){
-    tot=`<div class="cvres" style="margin-top:10px"><div style="grid-column:1/-1">Total de todos los niveles<b>${cr.tot.toFixed(2)} m²</b></div></div>`;
+    tot=`<div class="cvres" style="margin-top:10px"><div style="grid-column:1/-1">${cvSolarLv?"Total de construcción (sin el solar)":"Total de todos los niveles"}<b>${cr.tot.toFixed(2)} m²</b></div></div>`;
     const r2=ruta(); if(r2.includes("EDIF")||r2.includes("FCM")) tot+=`<button type="button" class="cvuse" id="cvUse">Usar como área de construcción (${cr.tot.toFixed(2)} m²)</button>`;
   }
   $("cvRes").innerHTML=`<label style="margin-top:10px">Medidas de los lados</label>${n?`<table class="cvtb"><tr><th>Lado</th><th>Medida (m)</th><th>Rumbo</th></tr>${rows}</table>`:`<div style="color:var(--suave);font-size:14px">Aún no hay puntos.</div>`}${res}${tot}`;
