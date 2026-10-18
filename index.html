@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-17-s";
+const APP_VER="2026-10-17-t";
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -1046,8 +1046,8 @@ async function exportar(){
       return;
     }
     marcarListo(); vista="cola"; ponerTrampa();
-    await renderCola("✔ Expediente guardado en el teléfono. Está seguro aunque no tengas internet. Ahora toca «⬇ Guardar en el teléfono» para subirlo a OneDrive."+(r.aviso?" "+r.aviso:""));
-    enviarPendientes().then(n=>{ if(n&&vista==="cola") renderCola("✔ Enviado."); }).catch(()=>{});
+    await renderCola("✔ Expediente guardado en el teléfono. Está seguro aunque no tengas internet. Si hay internet se envía solo; si no, toca «⬇ Guardar en el teléfono» para subirlo a OneDrive."+(r.aviso?" "+r.aviso:""));
+    enviarPendientes().then(n=>{ if(n&&vista==="cola") renderCola("✔ Enviado al sistema. Lo está revisando; si algo no cuadra, te avisará."); }).catch(()=>{});
   }catch(e){
     alert("No se pudo armar el paquete ("+((e&&e.message)||e)+"). Tus datos siguen guardados; inténtalo de nuevo.");
   }finally{
@@ -1056,7 +1056,9 @@ async function exportar(){
   }
 }
 /* ===== Cola: los expedientes guardados esperan en el teléfono hasta que se suben a OneDrive (o se envían, cuando exista ENDPOINT) ===== */
-let ENDPOINT="";           /* URL de un receptor web (aún no existe): vacío = se usa «Guardar en el teléfono» */
+let ENDPOINT="https://script.google.com/macros/s/AKfycbxQC1rf2L2tZcSYOXhhXf44IL3FucPqn8cbg1N-MfYcpM75BXNmX8orkhZ90dVAdMsW/exec";   /* receptor web del motor: si está apagado o falla, el expediente sigue en el teléfono y se usa «Guardar en el teléfono» */
+const ENVIO_CLAVE="_sJIpgK29RE-bgCmwOmSPYh8DBucmgfsk_vuCEe6";
+const ENVIO_MAX=30000000;
 let ENLACE_RECEPCION="https://nlcarquitectos-my.sharepoint.com/:f:/g/personal/lordnlc_nlcarquitectos_onmicrosoft_com/IgDNjJU-7H9SQbXVw3lwnXooAYlZPetBGr3ts6TAqAb0qY8";   /* enlace de «Solicitud de archivos» de OneDrive sobre la carpeta Recepcion: si se rellena, aparece «☁ Subir a Recepción» */
 /* Dos almacenes: "p" guarda el zip y "m" solo nombre, fecha, estado y tamaño (la lista no carga los zip en memoria). */
 const cola={
@@ -1079,15 +1081,26 @@ const cola={
   borrar(id){return this._tx(["p","m"],"readwrite",t=>{t.objectStore("p").delete(id); t.objectStore("m").delete(id);});}
 };
 let _enviando=false;
+async function sha256Hex(buf){ const h=await crypto.subtle.digest("SHA-256",buf); return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,"0")).join(""); }
+function aB64(buf){ const u=new Uint8Array(buf); let s=""; for(let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
+let _envMsg="";
 async function enviarPendientes(){
-  if(!ENDPOINT||!navigator.onLine||_enviando) return 0; _enviando=true; let n=0;
+  if(!ENDPOINT||!navigator.onLine||_enviando) return 0; _enviando=true; let n=0; _envMsg="";
   try{ for(const m of (await cola.listar()).filter(x=>x.estado!=="enviado").reverse()){
     const p=await cola.leer(m.id); if(!p) continue;
-    try{ const r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"application/zip","X-NLC-Nombre":encodeURIComponent(p.nombre)},body:p.blob}); if(r.ok){await cola.marcar(p.id,"enviado"); n++;} else break; }catch(e){ break; }
+    if(p.blob.size>ENVIO_MAX){ _envMsg="Este expediente es grande: súbelo con «⬇ Guardar en el teléfono»."; continue; }
+    try{
+      const buf=await p.blob.arrayBuffer();
+      const cuerpo=JSON.stringify({v:1,k:ENVIO_CLAVE,nombre:p.nombre,sha256:await sha256Hex(buf),zip_b64:aB64(buf)});
+      const r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:cuerpo,redirect:"follow"});
+      const j=await r.json();
+      if(j&&j.ok&&(j.estado==="RECIBIDO"||j.estado==="YA_RECIBIDO")){ await cola.marcar(p.id,"enviado"); n++; }
+      else { _envMsg=(j&&j.error==="envio_apagado")?"":"No se pudo enviar solo ("+((j&&j.error)||"respuesta rara")+"). Usa «⬇ Guardar en el teléfono»."; break; }
+    }catch(e){ break; }
   } }finally{ _enviando=false; }
   return n;
 }
-const EST_TXT={pendiente:"Pendiente",descargado:"En Descargas · falta subirlo a OneDrive",compartido:"Compartido (comprueba en OneDrive)",enviado:"Enviado"};
+const EST_TXT={pendiente:"Pendiente",descargado:"En Descargas · falta subirlo a OneDrive",compartido:"Compartido (comprueba en OneDrive)",enviado:"Enviado ✓ (el sistema lo está revisando)"};
 const AYUDA_ONEDRIVE="Se guardó en Descargas. Abre la app OneDrive → ＋ → Subir → Descargas → elige el archivo → carpeta NLC_Integral_V1_3 › Recepcion";
 function puedeCompartirZip(){ try{ return !!(navigator.canShare&&navigator.canShare({files:[new File([new Blob(["x"])],"prueba.zip",{type:"application/zip"})]})); }catch(e){ return false; } }
 async function renderCola(msg){
@@ -1095,8 +1108,8 @@ async function renderCola(msg){
   document.querySelector(".nav").style.display="none"; document.querySelector("#bar div").style.width="100%";
   const f=t=>new Date(t).toLocaleString("es-DO",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
   const share=puedeCompartirZip(), enCurso=!yaGuardado();
-  document.getElementById("app").innerHTML=`<h2>Expedientes guardados</h2>`+(msg?`<div class="msg">${esc(msg)}</div>`:"")+
-   (ENDPOINT?"":`<div class="msg">Para mandarlo al sistema: toca «⬇ Guardar en el teléfono» y luego súbelo con la app OneDrive a la carpeta NLC_Integral_V1_3 › Recepcion`+(ENLACE_RECEPCION?`, o toca «☁ Subir a Recepción» y elige el archivo en Descargas`:"")+`. El receptor lo toma solo y asigna el número.</div>`)+
+  document.getElementById("app").innerHTML=`<h2>Expedientes guardados</h2>`+((msg||_envMsg)?`<div class="msg">${esc(msg||_envMsg)}</div>`:"")+
+   (L.some(p=>p.estado!=="enviado")?`<div class="msg">Para mandarlo al sistema: toca «⬇ Guardar en el teléfono» y luego súbelo con la app OneDrive a la carpeta NLC_Integral_V1_3 › Recepcion`+(ENLACE_RECEPCION?`, o toca «☁ Subir a Recepción» y elige el archivo en Descargas`:"")+`. El receptor lo toma solo y asigna el número.</div>`:"")+
    (L.length?L.map(p=>`<div class="paq"><b>${esc(p.nombre)}</b><small>${f(p.creado)} · ${Math.max(1,Math.round((p.tam||0)/1024))} KB</small><span class="est${p.estado==="enviado"?" ok":""}">${EST_TXT[p.estado]||"Pendiente"}</span><div class="bt"><button type="button" data-a="dl" data-id="${p.id}">⬇ Guardar en el teléfono</button>${ENLACE_RECEPCION?`<button type="button" data-a="up" data-id="${p.id}">☁ Subir a Recepción</button>`:""}${share?`<button type="button" data-a="share" data-id="${p.id}">📤 Compartir</button>`:""}${ENDPOINT&&p.estado!=="enviado"?`<button type="button" data-a="send" data-id="${p.id}">Enviar ahora</button>`:""}<button type="button" data-a="del" data-id="${p.id}">🗑 Borrar</button></div></div>`).join(""):(cola._falla?"<div class='msg'>⚠ No se pudo abrir la lista de expedientes guardados. Cierra las otras ventanas o pestañas de la app NLC (también la app instalada) y vuelve a abrirla. Tus expedientes NO se han borrado.</div>":"<div class='msg'>No hay expedientes guardados.</div>"))+
    (enCurso?`<button type="button" class="cvbtn alt" id="otroExp">← Volver al formulario</button>`:`<button type="button" class="cvbtn alt" id="otroExp">➕ Empezar un expediente nuevo</button>`);
   document.getElementById("otroExp").onclick=()=>{ if(enCurso){ vista=null; render(); scrollTo(0,0); } else location.reload(); };
@@ -1113,7 +1126,7 @@ async function renderCola(msg){
   });
 }
 function netBadge(){const n=document.getElementById("net"); if(n) n.hidden=navigator.onLine!==false;}
-addEventListener("online",()=>{netBadge(); enviarPendientes().then(n=>{ if(n&&vista==="cola") renderCola("✔ Enviado."); }).catch(()=>{});});
+addEventListener("online",()=>{netBadge(); enviarPendientes().then(n=>{ if(n&&vista==="cola") renderCola("✔ Enviado al sistema. Lo está revisando; si algo no cuadra, te avisará."); }).catch(()=>{});});
 addEventListener("offline",netBadge); netBadge();
 
 /* ===== Canvas polígono (Bowditch + Shoelace) — skill canvas-poligono-nlc ===== */
