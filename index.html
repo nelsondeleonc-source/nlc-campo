@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-18-x"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-18-y"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -567,11 +567,14 @@ const AMB_LISTA=[["galería","galerías"],["sala","salas"],["comedor","comedores
  ["dormitorio de servicio con baño","dormitorios de servicio con baño"],
  ["baño","baños"],["medio baño","medios baños"],["estudio","estudios"],["terraza","terrazas"],
  ["balcón","balcones"],["área de lavado","áreas de lavado"],["lavandería","lavanderías"],
- ["depósito","depósitos"],["patio","patios"],["marquesina","marquesinas"]];
+ ["depósito","depósitos"],["patio","patios"],["marquesina","marquesinas"],
+ ["estar familiar","estares familiares"],["closet","closets"],["walk-in closet","walk-in closets"],
+ ["hall","halls"],["pasillo","pasillos"],["escalera","escaleras"],["cisterna","cisternas"],["azotea","azoteas"]];
 const AMB_MARQ=["Marquesina simple","Marquesina doble","Marquesina para 3 vehículos","Marquesina para 4 vehículos"];
 const AMB_INI={
  "Casa sencilla":"(1) Marquesina simple, (1) sala, (1) comedor, (1) cocina, (2) dormitorios, (1 ½) baños",
  "Casa familiar":"(1) Marquesina doble, (1) galería, (1) sala, (1) comedor, (1) cocina, (3) dormitorios, (2 ½) baños",
+ "Casa de 2 niveles":"1er nivel: (1) Marquesina doble, (1) galería, (1) sala, (1) comedor, (1) cocina, (½) baño. 2do nivel: (1) estar familiar, (3) dormitorios, (2) baños, (1) balcón",
  "Apartamento":"(1) sala, (1) comedor, (1) cocina, (2) dormitorios, (2) baños, (1) balcón",
  "Vacío":""};
 const AMB_OTROS_KEY="nlc_amb_otros";
@@ -583,9 +586,9 @@ function ambBase(et){ const n=ambNorm(et);
   for(const [s,p] of AMB_LISTA) if(ambNorm(s)===n||ambNorm(p)===n) return s;
   return null; }
 function ambLeer(t){ return String(t==null?"":t).split(/\s*,\s*/).filter(x=>x.trim()).map(x=>{
-    const m=/^\(\s*(\d+)\s*(½)?\s*\)\s*(.+?)\s*$/.exec(x.trim());
+    const m=/^\(\s*(\d+)?\s*(½)?\s*\)\s*(.+?)\s*$/.exec(x.trim());
     if(!m) return {crudo:x.trim()};
-    return {n:+m[1], medio:!!m[2], et:m[3], base:ambBase(m[3])};
+    return {n:(m[1]?+m[1]:0), medio:!!m[2], et:m[3], base:ambBase(m[3])};
   }); }
 /* Plural de un ambiente escrito a mano: se pluraliza solo la primera palabra.
    «gazebo»->«gazebos», «caseta de planta»->«casetas de planta», «lapiz»->«lapices». */
@@ -597,47 +600,83 @@ function ambPlural(et){ const w=String(et||"").split(" "); if(!w.length||!w[0]) 
   else c=c+"es";
   w[0]=c; return w.join(" "); }
 function ambUno(p){ if(p.crudo!==undefined) return p.crudo;
-  let et=p.et;
-  if(p.base && p.base!=="marquesina"){ const par=AMB_LISTA.find(a=>a[0]===p.base); if(par) et=(p.n>1||p.medio)?par[1]:par[0]; }
-  else if(!p.base && (p.n>1||p.medio)) et=ambPlural(et);
-  return "("+p.n+(p.medio?" ½":"")+") "+et; }
+  let et=p.et; const mas=(p.n>1||(p.n>=1&&p.medio));
+  if(p.base && p.base!=="marquesina"){ const par=AMB_LISTA.find(a=>a[0]===p.base); if(par) et=mas?par[1]:par[0]; }
+  else if(!p.base && mas) et=ambPlural(et);
+  return "("+(p.n>0?p.n:"")+(p.medio?(p.n>0?" ½":"½"):"")+") "+et; }
 function ambTexto(a){ const s=a.map(ambUno).filter(x=>x&&x.trim()).join(", ");
   return s.replace(/^(\([^)]*\)\s*)(\p{Ll})/u,(m,c,l)=>c+l.toUpperCase()); }
+/* ===== Niveles (2026-10-18-y): pestañas por nivel; cada ambiente va al nivel de la pestaña activa ===== */
+const AMB_ORD=["1er","2do","3er","4to","5to","6to","7mo","8vo","9no","10mo","11vo","12vo"];
+let _ambN=1,_ambAct=0,_ambTxt=null;
+function ambNivParse(t){ t=String(t==null?"":t);
+  const re=/(\d+)\s*(?:er|ro|do|to|vo|mo|no)?\s*nivel\s*:/gi; const ix=[]; let m;
+  while((m=re.exec(t))) ix.push({n:+m[1],s:m.index,e:re.lastIndex});
+  if(!ix.length) return [ambLeer(t)];
+  const out=[]; const pre=t.slice(0,ix[0].s).replace(/[.\s,]+$/,"").trim();
+  for(let i=0;i<ix.length;i++){
+    const seg=t.slice(ix[i].e, ix[i+1]?ix[i+1].s:t.length).replace(/[.\s,]+$/,"").replace(/^[\s,]+/,"");
+    const k=Math.min(Math.max(ix[i].n,1),12)-1; out[k]=(out[k]||[]).concat(ambLeer(seg)); }
+  if(pre) out[0]=ambLeer(pre).concat(out[0]||[]);
+  for(let i=0;i<out.length;i++) if(!out[i]) out[i]=[];
+  return out; }
+function ambNivTexto(L){ const n=Math.max(L.length,1);
+  if(n<=1) return ambTexto(L[0]||[]);
+  return L.map((a,i)=>(a&&a.length)?(AMB_ORD[i]+" nivel: "+ambTexto(a)):"").filter(Boolean).join(". "); }
+function ambNiveles(){ const L=ambNivParse(D_[AMB_K]||"");
+  if(L.length>_ambN) _ambN=L.length;
+  while(L.length<_ambN) L.push([]);
+  if(_ambAct>=_ambN) _ambAct=_ambN-1;
+  return L; }
 let _ambPila=[];
-function ambPon(t){ const prev=D_[AMB_K]||""; if(t===prev) return;
+function ambPon(t){ const prev=D_[AMB_K]||""; if(t===prev){ _ambTxt=t; return; }
   _ambPila.push(prev); if(_ambPila.length>30) _ambPila.shift();
-  D_[AMB_K]=t; save(); const ta=document.getElementById("f_"+AMB_K); if(ta) ta.value=t; }
+  D_[AMB_K]=t; _ambTxt=t; save(); const ta=document.getElementById("f_"+AMB_K); if(ta) ta.value=t; }
+function ambGuardar(L){ ambPon(ambNivTexto(L)); }
 function ambAgregar(base,etiqueta){
-  const a=ambLeer(D_[AMB_K]||"");
+  const L=ambNiveles(); const a=L[_ambAct];
   if(base==="marquesina"){
-    const j=a.findIndex(p=>p.base==="marquesina");
-    const nuevo={n:1,medio:false,et:etiqueta,base:"marquesina"};
-    if(j>=0) a[j]=nuevo; else a.unshift(nuevo);
+    L.forEach((x,k)=>{ const j=x.findIndex(p=>p.base==="marquesina"); if(j>=0) x.splice(j,1); });
+    L[0].unshift({n:1,medio:false,et:etiqueta,base:"marquesina"});
   }else{
-    const i=a.findIndex(p=>p.base===base);
+    const i=a.findIndex(p=>p.base===base&&base!=null || (base==null&&p.et===etiqueta));
     if(i>=0) a[i].n++; else a.push({n:1,medio:false,et:etiqueta||base,base:base||null});
   }
-  ambPon(ambTexto(a));
+  ambGuardar(L);
 }
-function ambMedio(){ const a=ambLeer(D_[AMB_K]||"");
+function ambMedio(){ const L=ambNiveles(); const a=L[_ambAct];
   const i=a.findIndex(p=>p.base==="baño");
-  if(i>=0) a[i].medio=!a[i].medio; else a.push({n:1,medio:true,et:"baño",base:"baño"});
-  ambPon(ambTexto(a)); }
-function ambConBano(){ const a=ambLeer(D_[AMB_K]||"");
+  if(i>=0) a[i].medio=!a[i].medio; else a.push({n:0,medio:true,et:"baño",base:"baño"});
+  ambGuardar(L); }
+function ambConBano(){ const L=ambNiveles(); const a=L[_ambAct];
   const i=a.map(p=>p.base).lastIndexOf("dormitorio de servicio");
   if(i<0){ alert("Primero toca «dormitorio de servicio» y después «+ con baño»."); return; }
   a[i].base="dormitorio de servicio con baño"; a[i].et="dormitorio de servicio con baño";
-  ambPon(ambTexto(a)); }
+  ambGuardar(L); }
 function ambDeshacer(){ if(!_ambPila.length) return; const t=_ambPila.pop();
-  D_[AMB_K]=t; save(); const ta=document.getElementById("f_"+AMB_K); if(ta) ta.value=t; }
+  D_[AMB_K]=t; _ambTxt=t; save(); const ta=document.getElementById("f_"+AMB_K); if(ta) ta.value=t;
+  _ambN=Math.max(1,ambNivParse(t).length); if(_ambAct>=_ambN) _ambAct=_ambN-1; ambRefrescar(); }
+function ambNombreNivel(i){ return "Nivel "+(i+1); }
 function ambCaja(){
   const bot=["galería","sala","comedor","cocina","dormitorio","dormitorio de servicio","baño",
-             "estudio","terraza","balcón","área de lavado","lavandería","depósito","patio"];
+             "estudio","estar familiar","terraza","balcón","área de lavado","lavandería","depósito","patio",
+             "closet","walk-in closet","hall","pasillo","escalera","cisterna","azotea"];
   const otros=ambOtrosGet();
+  const cur=D_[AMB_K]||"";
+  if(cur!==_ambTxt){ _ambTxt=cur; _ambN=Math.max(1,ambNivParse(cur).length); }
+  if(_ambAct>=_ambN) _ambAct=_ambN-1;
+  const nivBtn=[1,2,3,4].map(n=>`<button type="button" class="chip${_ambN===n?" on":""}" data-nn="${n}">${n}</button>`).join("")
+    +`<button type="button" class="chip" data-nmas="1">+ nivel</button>`;
+  const tabs=_ambN>1?`<div class="chips amb">${Array.from({length:_ambN},(_,i)=>`<button type="button" class="chip${i===_ambAct?" on":""}" data-tab="${i}">${ambNombreNivel(i)}</button>`).join("")}`
+    +(_ambAct>0?`<button type="button" class="chip" data-copia="1">Copiar el nivel ${_ambAct} aquí</button>`:"")+`</div>`:"";
+  const dest=_ambN>1?` al ${ambNombreNivel(_ambAct)}`:"";
   return `<div class="ambbox" data-ambbox>
     <div class="ambtit">Empezar con</div>
     <div class="chips amb">${Object.keys(AMB_INI).map(n=>`<button type="button" class="chip" data-ini="${esc(n)}">${esc(n)}</button>`).join("")}</div>
-    <div class="ambtit">Agregar — tócalo otra vez para subir la cantidad</div>
+    <div class="ambtit">¿Cuántos niveles tiene la propiedad?</div>
+    <div class="chips amb">${nivBtn}</div>
+    ${tabs}
+    <div class="ambtit">Agregar${dest} — tócalo otra vez para subir la cantidad</div>
     <div class="chips amb">
       <button type="button" class="chip" data-marqtog="1">Marquesina ▾</button>
       ${bot.map(x=>`<button type="button" class="chip" data-add="${esc(x)}">${esc(x)}</button>`).join("")}
@@ -653,6 +692,13 @@ function ambCaja(){
     </div>
   </div>`;
 }
+function ambRefrescar(){
+  const c=document.querySelector("[data-ambbox]"); if(!c) return;
+  const t=document.createElement("div"); t.innerHTML=ambCaja(); c.replaceWith(t.firstElementChild); ambEnganchar(); }
+function ambFijarNiveles(n){ const L=ambNiveles();
+  for(let i=n;i<L.length;i++) if(L[i].length){ alert("El "+ambNombreNivel(i)+" tiene ambientes. Bórralos primero (o pasa a ese nivel y usa Deshacer)."); return; }
+  _ambN=Math.max(1,Math.min(12,n)); if(_ambAct>=_ambN) _ambAct=_ambN-1;
+  ambGuardar(L.slice(0,_ambN)); ambRefrescar(); }
 function ambEnganchar(){
   const c=document.querySelector("[data-ambbox]"); if(!c) return;
   const fila=c.querySelector("[data-marqrow]");
@@ -660,14 +706,18 @@ function ambEnganchar(){
     const b=e.target.closest("button"); if(!b) return;
     if(b.dataset.marqtog!==undefined){ if(fila) fila.hidden=!fila.hidden; return; }
     if(b.dataset.marq!==undefined){ ambAgregar("marquesina",b.dataset.marq); if(fila) fila.hidden=true; return; }
-    if(b.dataset.ini!==undefined){ ambPon(AMB_INI[b.dataset.ini]||""); return; }
+    if(b.dataset.ini!==undefined){ ambPon(AMB_INI[b.dataset.ini]||""); _ambN=Math.max(1,ambNivParse(AMB_INI[b.dataset.ini]||"").length); _ambAct=0; ambRefrescar(); return; }
+    if(b.dataset.nn!==undefined){ ambFijarNiveles(+b.dataset.nn); return; }
+    if(b.dataset.nmas!==undefined){ ambFijarNiveles(_ambN+1); return; }
+    if(b.dataset.tab!==undefined){ _ambAct=+b.dataset.tab; ambRefrescar(); return; }
+    if(b.dataset.copia!==undefined){ const L=ambNiveles(); if(_ambAct>0){ L[_ambAct]=L[_ambAct-1].map(p=>Object.assign({},p)); ambGuardar(L); } return; }
     if(b.dataset.add!==undefined){ ambAgregar(ambBase(b.dataset.add),b.dataset.add); return; }
     if(b.dataset.medio!==undefined){ ambMedio(); return; }
     if(b.dataset.conb!==undefined){ ambConBano(); return; }
     if(b.dataset.undo!==undefined){ ambDeshacer(); return; }
-    if(b.dataset.clr!==undefined){ if(confirm("¿Borrar toda la distribución?")) ambPon(""); return; }
+    if(b.dataset.clr!==undefined){ if(confirm("¿Borrar toda la distribución?")){ ambPon(""); _ambN=1; _ambAct=0; ambRefrescar(); } return; }
     if(b.dataset.otro!==undefined){
-      const n=(prompt("¿Qué ambiente quieres agregar?\n\nEjemplos: caseta de planta, cisterna, gazebo, piscina.")||"").trim();
+      const n=(prompt("¿Qué ambiente quieres agregar"+(_ambN>1?" al "+ambNombreNivel(_ambAct):"")+"?\n\nEjemplos: caseta de planta, cisterna, gazebo, piscina.")||"").trim();
       if(!n) return;
       ambOtrosPon(n); ambAgregar(ambBase(n),n);
       const ta=document.getElementById("f_"+AMB_K); render(); if(ta){ const t2=document.getElementById("f_"+AMB_K); if(t2) t2.focus(); }
