@@ -410,7 +410,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-18-z5"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-19-z6"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -866,7 +866,7 @@ async function agregarFotos(r,lista){
   try{
     for(const f0 of lista){
       let f=null;
-      try{ f=await prepararArchivo(f0); }catch(e){ f=null; }
+      try{ f=await prepararArchivo(f0,r); }catch(e){ f=null; }
       _procHechas++; procUI();
       if(f==="heic"){ heic++; continue; }
       if(!f){ malas++; continue; }
@@ -901,13 +901,15 @@ async function pdfAJpg(f){
   } finally { try{ doc.destroy(); }catch(e){} } }
 const esPdf=f=>f.type==="application/pdf"||(!f.type&&/\.pdf$/i.test(f.name||""));
 /* Devuelve el archivo listo para el paquete: PDF tal cual; foto -> JPEG derecho con su EXIF; "heic" o null si no se puede usar. */
-async function prepararArchivo(f){
+/* 2026-10-19-z6 (pedido de Lord 19/10 07:17): fotos normales 1600 px / 0,80; documentos y mapas se quedan en 2000 px / 0,85 (letra pequeña). */
+const ROL_DOC=/^(TITULO|PLANO|DOCUMENTO|MATRICULA|UBICACION|LOCALIZACION)$/;
+async function prepararArchivo(f,rol){
   if(esPdf(f)){ const pf=f.type==="application/pdf"?f:new File([f],f.name,{type:"application/pdf"});
     /* 2026-10-18-z2: el PDF se convierte aquí mismo en una imagen de su 1a página (el motor ya no tiene que convertirlo) */
     try{ const j=await pdfAJpg(pf); if(j) return j; }catch(e){}
     return pf; }
   if(esHeic(f)) return "heic";
-  return await reducirFoto(f);
+  return ROL_DOC.test(rol||"") ? await reducirFoto(f) : await reducirFoto(f,1600,0.80);
 }
 /* Foto reducida: lado largo máximo 2000 px, siempre recomprimida a JPEG (sale derecha: se aplica la orientación EXIF)
    y con el bloque EXIF original copiado (fecha, hora, GPS de la cámara) con Orientation=1. */
