@@ -338,6 +338,10 @@ const INM=[T("COORDENADAS","Coordenadas del inmueble y sistema de referencia"),T
 const _pk=(a,ks)=>ks.map(k=>a.find(x=>x[0]===k)).filter(Boolean);
 const LEGAL=_pk(INM,["DOCUMENTO_BASE","DESIGNACION_CATASTRAL","MATRICULA_LIBRO_FOLIO","SUPERFICIE_REGISTRADA_M_2","FECHA_DE_REGISTRO","COORDENADAS"]);
 const SECTOR=_pk(INM,["VIAS_DE_ACCESO","USO_PREDOMINANTE","ARTERIA_PRINCIPAL","CLASE_SOCIAL","DESEABILIDAD_DE_LA_VECINDAD","CALIDAD_DE_LA_VECINDAD","CONSERVACION_DE_LA_VECINDAD","TIPO_DE_VIA","INTERES_DEL_MERCADO","ETAPA_DESARROLLO_SECTOR","DESEABILIDAD_DEL_INMUEBLE","MEJOR_USO","METODOLOGIA_APLICADA"]);
+/* 2026-10-20-z9: servicios del sector (casillas) y porcentaje de servicios calculado con la tabla de pesos de Lord */
+const SRV=[["SRV_AGUA","Agua potable",24],["SRV_ELECTRICIDAD","Electricidad",22],["SRV_TRANS_URBANO","Transporte urbano",10],["SRV_ALUMBRADO","Alumbrado público",9],["SRV_ALCANTARILLADO","Alcantarillado público",8],["SRV_ACERAS","Aceras",7],["SRV_CONTENES","Contenes",7],["SRV_INTERNET","Internet residencial",7],["SRV_TRANS_INTERURBANO","Transporte interurbano",6]];
+const SRV_PESO=Object.fromEntries(SRV.map(x=>[x[0],x[2]]));
+SECTOR.push(...SRV.map(x=>O(x[0],x[1]+" (marca si hay)",["Hay"])),N("Q_PORC_SERVICIOS","Porcentaje de servicios (%)"));
 const EDIF=[T("TIPO_DE_INMUEBLE","Tipo de edificación sobre el solar"),D("AREA_CONSTRUCCION_M2","Área de construcción (m²)"),N("EDAD_MEJORAS","Edad de las mejoras (años)"),T("TIPOLOGIA_CONSTRUCTIVA","Tipología constructiva"),L("DISTRIBUCION_ARQUITECTONICA_AMBIENTES","Distribución de ambientes"),L("CARACTERISTICAS_CONSTRUCTIVAS","Características constructivas observadas")];
 const SECC={
  INICIO:{t:"Qué vas a tasar",f:[O("TIPO_TASACION","¿Qué vas a tasar?",["Solar","Solar + Mejora","Solar + Mejora con materiales","Apartamento o local","Finca","Vehículo"])]},
@@ -410,7 +414,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-19-z8"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-20-z9"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -751,6 +755,15 @@ function nivBloque(k,opts){ const nm=NIV_KEYS[k], n=nivN(); if(!nm||n<2) return 
       return `<label for="f_${kk}">${nm} del ${AMB_ORD[i-1]} nivel</label><select id="f_${kk}" data-k="${kk}"><option value="">— igual que el 1er nivel —</option>${opts.filter(x=>!ES_OTRO(x)).map(x=>`<option value="${esc(x)}"${x===(D_[kk]||"")?" selected":""}>${esc(x)}</option>`).join("")}</select>`; }).join("")+`</div>`; }
 function aprAprenderYa(k,t){ for(const id in SECC){ const f=SECC[id].f.find(x=>x[0]===k); if(f&&f[2]==="o"){ aprAgregar(k,t,opcionesOficiales(f)); return; } } }
 document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-carauto]"); if(b){ carRefrescar(true); } });
+function porcSuma(){ let t=0, n=0; SRV.forEach(x=>{ if(D_[x[0]]) { t+=x[2]; n++; } }); return {t:t,n:n}; }
+function porcTexto(){ const p=porcSuma(); const man=!!D_.PORC_MANUAL; const cur=String(D_.Q_PORC_SERVICIOS||"").trim();
+  if(man) return "Escrito por ti"+(cur!==String(p.t)?" (las casillas darían "+p.t+"%)":"")+". Toca «Recalcular» para volver al cálculo automático.";
+  return p.n?"Calculado con las casillas marcadas ("+p.n+" de 9): "+p.t+"%. Puedes cambiarlo a mano.":"Marca los servicios que hay y el porcentaje se calcula solo. Sin ninguno marcado queda en 0 %."; }
+function porcAviso(){ const e=document.getElementById("porcAviso"); if(e) e.textContent=porcTexto(); }
+function porcRecalc(forzar){ if(forzar) D_.PORC_MANUAL=""; if(D_.PORC_MANUAL){ porcAviso(); return; }
+  const p=porcSuma(), v=String(p.t); D_.Q_PORC_SERVICIOS=v; save();
+  const el=document.getElementById("f_Q_PORC_SERVICIOS"); if(el) el.value=v; porcAviso(); }
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-porcrec]"); if(b) porcRecalc(true); });
 function campo(f){
   if(f[0]===CAR_K) carRefrescar();
   let [k,l,t,o]=f; const v=D_[k]??"";
@@ -781,6 +794,7 @@ function campo(f){
   else if(esDist(k)){ const d=distPartes(v), u=unidDe(k);
     h+=`<div class="dist"><input type="text" inputmode="decimal" autocomplete="off" id="f_${k}" data-dist="${k}" value="${esc(d.num)}" placeholder="Ej. 950"><div class="chips" data-unid="${k}">${["Ml","Km"].map(x=>`<button type="button" class="chip${x===u?" on":""}" data-u="${x}">${x}</button>`).join("")}</div></div>`+errDiv(k); }
   else h+=`<input type="text" id="f_${k}" data-k="${k}" value="${esc(v)}">`;
+  if(k==="Q_PORC_SERVICIOS") h+=`<div class="hint" id="porcAviso">${porcTexto()}</div><div class="chips amb" style="margin-bottom:6px"><button type="button" class="chip" data-porcrec="1">↻ Recalcular con las casillas</button></div>`;
   if(k==="COORDENADAS") h+=`<div><button type="button" class="gpsb" data-gps>📍 Tomar mi ubicación</button><div class="gpsr"></div></div>`;
   return h;
 }
@@ -809,7 +823,7 @@ function render(){
     g.querySelectorAll("button").forEach(x=>x.classList.remove("on"));
     if(ya){D_[k]="";}else{b.classList.add("on");D_[k]=b.dataset.v;}
     if(k==="PROVINCIA"){D_.MUNICIPIO="";}
-    save(); actualizarOtros();
+    save(); actualizarOtros(); if(/^SRV_/.test(k)) porcRecalc(false);
     if(k==="PROVINCIA") render();
   }));
   document.querySelector("#bar div").style.width=((paso+1)/R.length*100)+"%";
@@ -819,7 +833,8 @@ function render(){
   document.querySelectorAll("[data-k]").forEach(el=>{
     const k=el.dataset.k;
     el.addEventListener("input",()=>{
-      D_[k]=el.value; save(); actualizarOtros();
+      D_[k]=el.value; if(k==="Q_PORC_SERVICIOS") D_.PORC_MANUAL=el.value.trim()?"1":""; save(); actualizarOtros();
+      if(k==="Q_PORC_SERVICIOS") porcAviso();
       if(/^Q_SM_/.test(k)) carRefrescar();
       if(el.dataset.num) revisarCampo(el,false);   /* mientras escribe solo se quita el rojo; se marca al salir del campo */
       if(k==="PROVINCIA"){D_.MUNICIPIO="";save();render();}
@@ -1098,7 +1113,7 @@ function armarJSON(){
   const tid=tidActual(), mp=(MOTOR.map[tid]||{}); const ans={};
   const ok=clavesDe(D_.TIPO_TASACION,D_.N_FINCA_MEJORAS);   /* solo campos del tipo actual */
   Object.keys(D_).forEach(k=>{ if(!ok.has(k)||/__OTRO$/.test(k)) return; const v=valorMotor(k,D_[k]); if(!v) return;
-    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z_]+|SM_[A-Z_]+)$/.test(k)?k:null); if(id) ans[id]=v; });
+    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z_]+|SM_[A-Z_]+|PORC_SERVICIOS)$/.test(k)?k:null); if(id) ans[id]=v; });
   return {form_id:MOTOR.form_id,answers:ans};
 }
 /* Extensión según el tipo real del archivo (no según su nombre): .jfif/.jpe/sin extensión salen como .jpg */
