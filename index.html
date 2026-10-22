@@ -344,7 +344,7 @@ const SRV_PESO=Object.fromEntries(SRV.map(x=>[x[0],x[2]]));
 SECTOR.push(...SRV.map(x=>O(x[0],x[1]+" (marca si hay)",["Hay"])),N("Q_PORC_SERVICIOS","Porcentaje de servicios (%)"));
 const EDIF=[T("TIPO_DE_INMUEBLE","Tipo de edificación sobre el solar"),D("AREA_CONSTRUCCION_M2","Área de construcción (m²)"),N("EDAD_MEJORAS","Edad de las mejoras (años)"),T("TIPOLOGIA_CONSTRUCTIVA","Tipología constructiva"),L("DISTRIBUCION_ARQUITECTONICA_AMBIENTES","Distribución de ambientes"),L("CARACTERISTICAS_CONSTRUCTIVAS","Características constructivas observadas")];
 const SECC={
- INICIO:{t:"Qué vas a tasar",f:[O("TIPO_TASACION","¿Qué vas a tasar?",["Solar","Solar + Mejora","Solar + Mejora con materiales","Apartamento o local","Finca","Vehículo"])]},
+ INICIO:{t:"Qué vas a tasar",f:[O("TIPO_TASACION","¿Qué vas a tasar?",["Solar","Solar + Mejora","Solar + Mejora con materiales","Apartamento o local","Finca","Vehículo"]),O("Q_PLANTILLA_PRUEBA","Plantilla del Word",["Actual (probada)","Nueva (en prueba)"])]},
  PERS:{t:"Solicitante, propietario y dirección",f:HOUSE},
  TER:{t:"Terreno y linderos",f:TER},
  LEGAL:{t:"Datos legales del inmueble",f:LEGAL},
@@ -414,7 +414,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-20-z9"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-22-z10"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -772,6 +772,8 @@ function campo(f){
   if(cd){l=cd.l; if(cd.o) o=cd.o; hint=cd.h||"";}
   if(esDist(k)) hint="Escribe la distancia y toca la unidad: Ml (metros lineales) o Km. Ejemplo: 950 Ml o 1.5 Km.";
   let h=`<label for="f_${k}">${esc(l)}${hint?`<button type="button" class="ib" aria-label="Ver ejemplo" title="Ver ejemplo">i</button>`:""}</label>`+(hint?`<div class="hint">${esc(hint)}</div>`:"");
+  /* 2026-10-22-z10 (J14): plantilla del Word por caso. Sin elegir = Actual; un toque elige (no se desmarca). */
+  if(k==="Q_PLANTILLA_PRUEBA"){ const cur=v||"Actual (probada)"; return h+`<div class="chips" data-chip="${k}">${o.map(x=>`<button type="button" class="chip${x===cur?" on":""}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div><div class="hint">Si no tocas nada, sale la Actual (la de siempre). «Nueva (en prueba)» es solo para probar: ese Word va a la carpeta _Pruebas y, si la Nueva falla, el motor usa la Actual y te avisa en el correo.</div>`; }
   if(t==="o"){
     let opts=o;
     if(k==="MUNICIPIO"&&D_.PROVINCIA) opts=o.filter(x=>x.endsWith("— "+D_.PROVINCIA));
@@ -820,6 +822,7 @@ function render(){
     const b=e.target.closest("button[data-v]"); if(!b) return;
     const k=g.dataset.chip, ya=b.classList.contains("on");
     if(k==="TIPO_TASACION"||k==="N_FINCA_MEJORAS"){ if(!ya&&cambiarTipo(k,b.dataset.v)) render(); return; }
+    if(k==="Q_PLANTILLA_PRUEBA"){ D_[k]=b.dataset.v; save(); render(); return; }
     g.querySelectorAll("button").forEach(x=>x.classList.remove("on"));
     if(ya){D_[k]="";}else{b.classList.add("on");D_[k]=b.dataset.v;}
     if(k==="PROVINCIA"){D_.MUNICIPIO="";}
@@ -1113,7 +1116,7 @@ function armarJSON(){
   const tid=tidActual(), mp=(MOTOR.map[tid]||{}); const ans={};
   const ok=clavesDe(D_.TIPO_TASACION,D_.N_FINCA_MEJORAS);   /* solo campos del tipo actual */
   Object.keys(D_).forEach(k=>{ if(!ok.has(k)||/__OTRO$/.test(k)) return; const v=valorMotor(k,D_[k]); if(!v) return;
-    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z_]+|SM_[A-Z_]+|PORC_SERVICIOS)$/.test(k)?k:null); if(id) ans[id]=v; });
+    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z_]+|SM_[A-Z_]+|PORC_SERVICIOS|PLANTILLA_PRUEBA)$/.test(k)?k:null); if(id) ans[id]=v; });
   return {form_id:MOTOR.form_id,answers:ans};
 }
 /* Extensión según el tipo real del archivo (no según su nombre): .jfif/.jpe/sin extensión salen como .jpg */
