@@ -324,7 +324,7 @@ const MUN=["Baní — Peravia","Nizao — Peravia","Matanzas — Peravia","San C
 /* tipos: t texto, l largo, n entero, d decimal, f fecha, o opciones */
 const T=(k,l)=>[k,l,"t"], L=(k,l)=>[k,l,"l"], N=(k,l)=>[k,l,"n"], D=(k,l)=>[k,l,"d"], F=(k,l)=>[k,l,"f"], O=(k,l,o)=>[k,l,"o",o];
 
-const HOUSE=[T("SOLICITANTE","Nombre del solicitante"),O("BANCO","Banco destinatario",BANCOS),T("PROPIETARIO","Nombre del propietario"),L("DIRECCION_COMPLETA","Dirección del inmueble (calle, número, sector, barrio o residencial)"),O("PROVINCIA","Provincia del inmueble",PROV),O("MUNICIPIO","Municipio del inmueble",MUN)];
+const HOUSE=[T("SOLICITANTE","Nombre del solicitante"),O("BANCO","Banco destinatario",BANCOS),O("Q_OBJETIVO_USO_DE_LA_TASACION","Objetivo / uso de la tasación (finalidad)",["Hipotecario","Personal","Informativo","Compra y venta","Separación de bienes"]),T("PROPIETARIO","Nombre del propietario"),L("DIRECCION_COMPLETA","Dirección del inmueble (calle, número, sector, barrio o residencial)"),O("PROVINCIA","Provincia del inmueble",PROV),O("MUNICIPIO","Municipio del inmueble",MUN)];
 const TER=[L("DESCRIPCION_TECNICA_COMPLETA","Descripción física del terreno"),
  T("LINDERO_NORTE","Norte — Colindante"),D("DIMENSION_LINDERO_NORTE","Norte — Medida (m)"),
  T("LINDERO_SUR","Sur — Colindante"),D("DIMENSION_LINDERO_SUR","Sur — Medida (m)"),
@@ -454,7 +454,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-25-z18"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-25-z23"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -527,14 +527,20 @@ function cambiarTipo(k,nuevo){
 const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 /* ===== Números (regla del contrato: sin separador de miles y con punto decimal) =====
    «12,5» y «12.5» valen 12.5. «1,500» es ambiguo (¿mil quinientos o uno coma cinco?): se marca en rojo y no deja guardar. */
-function numNorm(v,entero){
+function numNorm(v,entero,conDec){
   let s=String(v==null?"":v).trim().replace(/\s/g,"");
   if(s==="") return "";
+  /* 2026-10-25-z19 · se aceptan coma y punto: 3,000.00 · 28,117 · 1,500 · 1.234.567 (miles) y 12,5 (decimal); el valor se guarda sin miles */
+  if(/,/.test(s)&&/\./.test(s)){ s=(s.lastIndexOf(",")>s.lastIndexOf("."))?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,""); }
+  else if(/^\d{1,3}(,\d{3})+$/.test(s)) s=s.replace(/,/g,"");
+  else if(/^\d{1,3}(\.\d{3}){2,}$/.test(s)) s=s.replace(/\./g,"");
   if(/^\d+,\d{1,2}$/.test(s)) s=s.replace(",",".");        /* 12,5 -> 12.5 */
   if(!/^\d+(\.\d+)?$/.test(s)) return null;                  /* 1,500 · 1e3 · -3 · 12.5.1 -> mal escrito */
   if(entero&&/\.\d*[1-9]/.test(s)) return null;              /* 5.5 en un campo entero */
-  return s.replace(/\.0+$/,"");                              /* 12.0 -> 12 */
+  return conDec?s:s.replace(/\.0+$/,"");                       /* 12.0 -> 12 (el kilometraje conserva sus decimales: 28177.00) */
 }
+/* 2026-10-25-z20 · kilometraje: en pantalla con coma de miles y 2 decimales (28,177.00); en el dato queda 28177.00 / 28177 / 28177.5 según lo escrito */
+function kmFmt(v){ const n=numNorm(v,false,true); if(n==null||n==="") return v; const x=Number(n); return isNaN(x)?v:x.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function numMsg(v,entero){
   const s=String(v==null?"":v).trim().replace(/\s/g,"");
   if(/^\d+,$/.test(s)) return "Número incompleto: escribe los decimales o borra la coma";
@@ -565,7 +571,8 @@ function aprGet(){ try{ const o=JSON.parse(localStorage.getItem(APR_KEY)||"{}");
 function aprSet(o){ try{ localStorage.setItem(APR_KEY,JSON.stringify(o)); }catch(e){} }
 function aprDe(k){ const v=aprGet()[k]; return Array.isArray(v)?v.filter(x=>typeof x==="string"&&x.trim()):[]; }
 function aprEs(k,x){ return aprDe(k).includes(x); }
-function aprLbl(k,x){ return aprEs(k,x)?"★ "+x:x; }
+/* 2026-10-25-z23 · con la provincia ya elegida, el municipio se ve solo por su nombre («Baní»); el dato guardado sigue siendo «Baní — Peravia» */
+function aprLbl(k,x){ const t=(k==="MUNICIPIO"&&D_.PROVINCIA&&x.endsWith("— "+D_.PROVINCIA))?x.slice(0,x.length-(" — "+D_.PROVINCIA).length):x; return aprEs(k,x)?"★ "+t:t; }
 function conAprendidas(k,of){
   if(!of.some(ES_OTRO)) return of;
   const ap=aprDe(k).filter(t=>!of.some(x=>normTxt(x)===normTxt(t))); if(!ap.length) return of;
@@ -608,7 +615,7 @@ function valorMotor(k,v){
   v=String(v==null?"":v).trim(); if(v==="") return "";
   const f=defCampo(k);
   if(esDist(k)){ const d=distPartes(v), n=numNorm(d.num,false); return n==null?null:distValor(n,d.u); }
-  if(f&&(f[2]==="n"||f[2]==="d")) return numNorm(v,f[2]==="n");
+  if(f&&(f[2]==="n"||f[2]==="d")) return numNorm(v,f[2]==="n",k==="VEHICULO_KILOMETRAJE");
   /* 2026-10-18-z3: Paredes y Pisos distintos por nivel van compuestos en la casilla del Word */
   if(f&&f[2]==="o"&&typeof NIV_KEYS!=="undefined"&&NIV_KEYS[k]&&typeof carNiv==="function"){ try{ const c=carNiv(k); if(c&&c!==carVal(k)) return c.charAt(0).toUpperCase()+c.slice(1); }catch(e){} }
   if(f&&f[2]==="o"){ if(ES_OTRO(v)&&opcionesDe(f).includes(v)){ const t=String(D_[k+"__OTRO"]||"").trim(); return t||v; } return opcionesDe(f).includes(v)?v:""; }
@@ -934,6 +941,7 @@ function render(){
   nx.textContent=_exportando?"Guardando…":ult?"Guardar expediente":"Siguiente"; nx.className=ult?"ok":""; nx.disabled=_exportando||(ult&&_procesando>0);
   document.querySelectorAll("[data-k]").forEach(el=>{
     const k=el.dataset.k;
+    if(el.dataset.num==="d"&&D_[k]) el.value=kmFmt(D_[k]);   /* 2026-10-25-z23 · todo campo decimal se ve 65,000.00 */
     el.addEventListener("input",()=>{
       D_[k]=el.value; if(k==="Q_PORC_SERVICIOS") D_.PORC_MANUAL=el.value.trim()?"1":""; save(); actualizarOtros();
       if(k==="Q_PORC_SERVICIOS") porcAviso(); if(/^Q_(PCT_VIAS|PCT_VERDES|UTILIDAD_PCT)$/.test(k)) preurbPintar(); if(/^Q_VEH_REG_COMP_\d+_(ANIO|PRECIO)$/.test(k)) vregPintar(); if(/^Q_OBRA_/.test(k)) obraPintar();
@@ -943,6 +951,7 @@ function render(){
     });
     if(/__OTRO$/.test(k)) el.addEventListener("change",()=>aprAprenderYa(k.slice(0,-6),el.value));
     if(el.dataset.num) el.addEventListener("change",()=>{
+      if(el.dataset.num==="d"){ const nk=numNorm(el.value,false,k==="VEHICULO_KILOMETRAJE"); if(nk!=null&&nk!==""){ D_[k]=nk; el.value=kmFmt(nk); save(); } revisarCampo(el,true); return; }
       const n=numNorm(el.value,el.dataset.num==="n"); if(n!=null&&n!==el.value){ el.value=n; D_[k]=n; save(); }
       revisarCampo(el,true);
     });
@@ -1230,7 +1239,7 @@ function armarJSON(){
   const tid=tidActual(), mp=(MOTOR.map[tid]||{}); const ans={};
   const ok=clavesDe(D_.TIPO_TASACION,D_.N_FINCA_MEJORAS);   /* solo campos del tipo actual */
   Object.keys(D_).forEach(k=>{ if(!ok.has(k)||/__OTRO$/.test(k)) return; if(/^Q_(ACC_|VEH_RAPIDO)/.test(k)&&D_.Q_PLANTILLA_PRUEBA!=="Nueva (en prueba)") return; const v=valorMotor(k,D_[k]); if(!v) return;
-    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z_]+|SM_[A-Z_]+|PORC_SERVICIOS|PLANTILLA_PRUEBA|PCT_VIAS|PCT_VERDES|OBRAS_PUBLICAS_V|UTILIDAD_PCT|VEH_REG_[A-Z0-9_]+|OBRA_[A-Z_]+|ACC_[A-Z_]+|VEH_RAPIDO_CONFIRMADO)$/.test(k)?k:null); if(id) ans[id]=v; });
+    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z_]+|SM_[A-Z_]+|PORC_SERVICIOS|PLANTILLA_PRUEBA|OBJETIVO_USO_DE_LA_TASACION|PCT_VIAS|PCT_VERDES|OBRAS_PUBLICAS_V|UTILIDAD_PCT|VEH_REG_[A-Z0-9_]+|OBRA_[A-Z_]+|ACC_[A-Z_]+|VEH_RAPIDO_CONFIRMADO)$/.test(k)?k:null); if(id) ans[id]=v; });
   return {form_id:MOTOR.form_id,answers:ans};
 }
 /* Extensión según el tipo real del archivo (no según su nombre): .jfif/.jpe/sin extensión salen como .jpg */
