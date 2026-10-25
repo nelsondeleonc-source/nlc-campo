@@ -1,10 +1,10 @@
-/* Service worker de la app de campo NLC — versión 2026-10-25-z18.
+/* Service worker de la app de campo NLC — versión 2026-10-25-z23.
 - Abre sin internet: responde con lo guardado y, si hay internet, actualiza la copia en segundo plano.
 - Toda apertura de la app (…/, …/index.html, …/index.html?x=1) usa la MISMA copia "index.html", así que también
 se actualiza cuando se entra por la dirección de la carpeta.
 - Las peticiones con cache:"no-store" (la comprobación de versión nueva que hace la página) van directo a la red.
 - Al cambiar CACHE (cada versión) se borran las copias viejas. */
-const VERSION = "2026-10-25-z18";
+const VERSION = "2026-10-25-z23";
 const CACHE = "nlc-form-" + VERSION;
 const BASE = ["./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
 self.addEventListener("install", e => {
