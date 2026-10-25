@@ -376,15 +376,25 @@ const SECC={
  FOTOS:{t:"Fotos y documentos",f:[]}
 };
 const RUTAS={
- "Solar":["INICIO","PERS","CANVAS","LEGAL","TER","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
+ "Solar":["INICIO","PERS","CANVAS","LEGAL","TER","OBRAS","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
  "Terreno preurbanizado":["INICIO","PERS","CANVAS","LEGAL","TER","SECTOR","SERV","PREURB","CENTROS","COMUN","FOTOS"],
- "Solar + Mejora":["INICIO","PERS","CANVAS","LEGAL","TER","EDIF","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
- "Solar + Mejora con materiales":["INICIO","PERS","CANVAS","LEGAL","TER","EDIF","SM_MAT","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
+ "Solar + Mejora":["INICIO","PERS","CANVAS","LEGAL","TER","EDIF","OBRAS","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
+ "Solar + Mejora con materiales":["INICIO","PERS","CANVAS","LEGAL","TER","EDIF","SM_MAT","OBRAS","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
  "Apartamento o local":["INICIO","PERS","LEGAL","APT","APT_DESC","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
  "Finca|Sin mejoras":["INICIO","PERS","FIN_TIPO","CANVAS","LEGAL","TER","FIN","FSM","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
- "Finca|Con mejoras":["INICIO","PERS","FIN_TIPO","CANVAS","LEGAL","TER","FIN","FCM","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
+ "Finca|Con mejoras":["INICIO","PERS","FIN_TIPO","CANVAS","LEGAL","TER","FIN","FCM","OBRAS_F","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
  "Vehículo":["INICIO","VEH","VREG","VREG2","REV","COMUN","FOTOS"]
 };
+SECC.OBRAS={t:"Obras complementarias",f:[D("Q_OBRA_CISTERNA_MED","Cisterna · medida (m², m³ o unidad)"),D("Q_OBRA_CISTERNA_VALOR","Cisterna · valor unitario (RD$)"),D("Q_OBRA_POZO_MED","Pozo tubular · medida (m², m³ o unidad)"),D("Q_OBRA_POZO_VALOR","Pozo tubular · valor unitario (RD$)"),D("Q_OBRA_PISCINA_MED","Piscina · medida (m², m³ o unidad)"),D("Q_OBRA_PISCINA_VALOR","Piscina · valor unitario (RD$)"),D("Q_OBRA_JACUZZI_MED","Jacuzzi · medida (m², m³ o unidad)"),D("Q_OBRA_JACUZZI_VALOR","Jacuzzi · valor unitario (RD$)"),D("Q_OBRA_JARDINERIA_MED","Jardinería · medida (m², m³ o unidad)"),D("Q_OBRA_JARDINERIA_VALOR","Jardinería · valor unitario (RD$)"),D("Q_OBRA_VERJA_AREA","Verja · área (m²)"),D("Q_OBRA_VERJA_VALOR","Verja · valor unitario (RD$)"),T("Q_OBRA_OTRA_DESC","Otra obra · descripción"),D("Q_OBRA_OTRA_MED","Otra obra · medida"),D("Q_OBRA_OTRA_VALOR","Otra obra · valor unitario (RD$)")]};
+SECC.OBRAS_F={t:"Obras complementarias",f:[...SECC.OBRAS.f,D("Q_OBRA_VERJAF_AREA","Verja frontal · área (m²)"),D("Q_OBRA_VERJAF_VALOR","Verja frontal · valor unitario (RD$)")]};
+const OBRA_ROWS=[["CISTERNA","MED"],["POZO","MED"],["PISCINA","MED"],["JACUZZI","MED"],["JARDINERIA","MED"],["VERJA","AREA"],["VERJAF","AREA"],["OTRA","MED"]];
+function obraNum(k){const v=numNorm(D_[k],false); return (v===""||v==null)?null:Number(v);}
+function obraTotal(){ let t=0,n=0; OBRA_ROWS.forEach(r=>{const m=obraNum("Q_OBRA_"+r[0]+"_"+r[1]), v=obraNum("Q_OBRA_"+r[0]+"_VALOR"); if(m!=null&&v!=null){t+=m*v;n++;}}); return {t,n}; }
+function obraResumen(){ const r=obraTotal(); return r.n?("Obras con medida y valor: "+r.n+" · Total RD$ "+Math.round(r.t).toLocaleString("en-US")+" (referencia; el total oficial lo calcula el Word)"):"Llena medida y valor de las obras que existan; las demás déjalas vacías."; }
+function obraPintar(){ document.querySelectorAll(".obraRes").forEach(e=>e.textContent=obraResumen()); }
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-pa]"); if(!b) return; const k=b.dataset.pa, inp=document.getElementById("f_"+k); const on=D_["PA_"+k]==="1";
+  if(on){ delete D_["PA_"+k]; b.classList.remove("on"); } else { D_["PA_"+k]="1"; D_[k]="1"; if(inp) inp.value="1"; b.classList.add("on"); }
+  save(); obraPintar(); });
 /* REV15 (motor, 12/10/2026): preguntas SOLO del formulario HTML (Forms ya no tiene cupo). La clave en el JSON es el instance_id. */
 const _REVL=["01. Funcionamiento limpiaparabrisas delantero", "02. Funcionamiento limpiaparabrisas trasero", "03. Funcionamiento luz interior", "04. Funcionamiento radio", "05. Funcionamiento reloj", "06. Funcionamiento facilidad de arranque", "07. Funcionamiento tacómetro", "08. Funcionamiento techo corredizo", "09. Funcionamiento velocímetro", "10. TAPICERÍA", "11. Estado tapicería alfombras", "12. Estado carteras puertas", "13. Estado tapicería asientos", "14. Estado tapicería techo", "15. Estado del timón", "16. LUCES O INDICADORES DEL TABLERO", "17. Indicador ABS", "18. Indicador aceite", "19. Indicador airbag", "20. Indicador cerebro eléctrico", "21. Indicador check engine", "22. Indicador frenos", "23. Indicador gasolina o gas", "24. MANTENIMIENTO PARTE BAJA", "25. Fuga aceite caja transmisión", "26. Fuga aceite caja de velocidades", "27. Fuga aceite dirección hidráulica", "28. Fuga aceite motor", "29. Fuga aceite por amortiguadores", "30. Fuga aceite por bomba de embrague", "31. Fuga de líquido de frenos", "32. Fuga tanque combustible", "33. VERIFICACIÓN DE PIEZAS Y PARTES", "34. Estado carrocería", "35. Estado de gomas", "36. Estado de frenos", "37. Estado de luces", "38. Estado de pintura"];
 SECC.REV={t:"Revisión física del vehículo",f:_REVL.map((l,i)=>["Q_REV_"+String(i+1).padStart(2,"0")+"_ESTADO",l,"o",["Excelente","Bueno","Regular","Malo"],"g"])};
@@ -429,12 +439,12 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-24-z13"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-24-z14"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
 try{D_=JSON.parse(localStorage.getItem("nlc_form")||"{}")}catch(e){}
-/* ===== 2026-10-24-z13 · Preguntas enlazadas (Apartamento): al llenar una se llena la otra; sigue editable ===== */
+/* ===== 2026-10-24-z14 · Preguntas enlazadas (Apartamento): al llenar una se llena la otra; sigue editable ===== */
 const _anoRef=()=>{ const m=String(D_.FECHA_DE_INSPECCION||"").match(/(20\d\d)/g); return m&&m.length?Number(m[m.length-1]):new Date().getFullYear(); };
 const LINKS=[
  ["ANO_CONSTRUCCION","EDAD_INMUEBLE",v=>{const n=Number(v); return n>1800&&n<=_anoRef()?String(_anoRef()-n):"";}, v=>{const n=Number(v); return n>=0&&n<300?String(_anoRef()-n):"";}],
@@ -820,6 +830,8 @@ function vregResumen(){ const {pts,ya}=vregCalc(); const n=pts.length; if(n<3) r
   if(ea){ const v=a+b*(ya-ea); t+=" · valor aprox. con edad "+(ya-ea)+": US$ "+Math.round(v).toLocaleString("en-US"); } return t; }
 function vregPintar(){ document.querySelectorAll(".vregRes").forEach(e=>e.textContent=vregResumen()); }
 function campo(f){
+  if(/^Q_OBRA_[A-Z]+_(MED|AREA)$/.test(f[0])) return campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: medida 1)</button></div>`;
+  if(f[0]==="Q_OBRA_OTRA_VALOR") return campo0(f)+`<div class="hint obraRes">${obraResumen()}</div>`;
   if(f[0]==="Q_VEH_REG_COMP_6_URL"||f[0]==="Q_VEH_REG_COMP_12_URL") return campo0(f)+`<div class="hint vregRes">${vregResumen()}</div>`;
   if(f[0]==="SRV_AGUA") return porcBig()+campo0(f);
   if(f[0]==="Q_UTILIDAD_PCT") return campo0(f)+`<div class="hint" id="preurbRes">${preurbResumen()}</div>`;
@@ -898,7 +910,7 @@ function render(){
     const k=el.dataset.k;
     el.addEventListener("input",()=>{
       D_[k]=el.value; if(k==="Q_PORC_SERVICIOS") D_.PORC_MANUAL=el.value.trim()?"1":""; save(); actualizarOtros();
-      if(k==="Q_PORC_SERVICIOS") porcAviso(); if(/^Q_(PCT_VIAS|PCT_VERDES|UTILIDAD_PCT)$/.test(k)) preurbPintar(); if(/^Q_VEH_REG_COMP_\d+_(ANIO|PRECIO)$/.test(k)) vregPintar();
+      if(k==="Q_PORC_SERVICIOS") porcAviso(); if(/^Q_(PCT_VIAS|PCT_VERDES|UTILIDAD_PCT)$/.test(k)) preurbPintar(); if(/^Q_VEH_REG_COMP_\d+_(ANIO|PRECIO)$/.test(k)) vregPintar(); if(/^Q_OBRA_/.test(k)) obraPintar();
       if(/^Q_SM_/.test(k)) carRefrescar();
       if(el.dataset.num) revisarCampo(el,false);   /* mientras escribe solo se quita el rojo; se marca al salir del campo */
       if(k==="PROVINCIA"){D_.MUNICIPIO="";save();render();}
@@ -1177,7 +1189,7 @@ function armarJSON(){
   const tid=tidActual(), mp=(MOTOR.map[tid]||{}); const ans={};
   const ok=clavesDe(D_.TIPO_TASACION,D_.N_FINCA_MEJORAS);   /* solo campos del tipo actual */
   Object.keys(D_).forEach(k=>{ if(!ok.has(k)||/__OTRO$/.test(k)) return; const v=valorMotor(k,D_[k]); if(!v) return;
-    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z_]+|SM_[A-Z_]+|PORC_SERVICIOS|PLANTILLA_PRUEBA|PCT_VIAS|PCT_VERDES|OBRAS_PUBLICAS_V|UTILIDAD_PCT|VEH_REG_[A-Z0-9_]+)$/.test(k)?k:null); if(id) ans[id]=v; });
+    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z_]+|SM_[A-Z_]+|PORC_SERVICIOS|PLANTILLA_PRUEBA|PCT_VIAS|PCT_VERDES|OBRAS_PUBLICAS_V|UTILIDAD_PCT|VEH_REG_[A-Z0-9_]+|OBRA_[A-Z_]+)$/.test(k)?k:null); if(id) ans[id]=v; });
   return {form_id:MOTOR.form_id,answers:ans};
 }
 /* Extensión según el tipo real del archivo (no según su nombre): .jfif/.jpe/sin extensión salen como .jpg */
