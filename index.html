@@ -439,7 +439,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-24-z15"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-25-z16"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -831,6 +831,7 @@ function vregResumen(){ const {pts,ya}=vregCalc(); const n=pts.length; if(n<3) r
   if(ea){ const v=a+b*(ya-ea); t+=" · valor aprox. con edad "+(ya-ea)+": US$ "+Math.round(v).toLocaleString("en-US"); } return t; }
 function vregPintar(){ document.querySelectorAll(".vregRes").forEach(e=>e.textContent=vregResumen()); }
 function campo(f){
+  if(f[0]==="Q_OBRA_CISTERNA_MED") return `<div class="hint obraAviso" style="border:1.5px solid #b45309;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:600">⚠ Estas obras solo salen en el Word con la plantilla «Nueva (en prueba)». Con «Actual (probada)» no aparecen en el Word.</div>`+campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: medida 1)</button></div>`;
   if(/^Q_OBRA_[A-Z]+_(MED|AREA)$/.test(f[0])) return campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: medida 1)</button></div>`;
   if(f[0]==="Q_OBRA_OTRA_VALOR") return campo0(f)+`<div class="hint obraRes">${obraResumen()}</div>`;
   if(f[0]==="Q_VEH_REG_COMP_6_URL"||f[0]==="Q_VEH_REG_COMP_12_URL") return campo0(f)+`<div class="hint vregRes">${vregResumen()}</div>`;
