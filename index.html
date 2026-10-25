@@ -439,7 +439,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-24-z14"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-24-z15"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -599,6 +599,7 @@ function valorMotor(k,v){
 }
 function errorCampo(k){
   const v=D_[k], fd=defCampo(k);
+  if(/^Q_(PCT_VIAS|PCT_VERDES|UTILIDAD_PCT)$/.test(k)&&v!=null&&String(v).trim()!==""){ const nv=Number(numNorm(v,false)); if(!isNaN(nv)&&(nv>100||nv<0)) return "El porcentaje debe estar entre 0 y 100"; }
   if(fd&&fd[2]==="f"&&v&&String(v).trim()&&!/^(19|20)\d{2}-\d{2}-\d{2}$/.test(String(v).trim())) return "Revisa la fecha: el año debe tener 4 cifras (ej. 2026)"; if(v==null||String(v).trim()===""||valorMotor(k,v)!==null) return "";
   if(esDist(k)) return numMsg(distPartes(v).num,false);
   const f=defCampo(k); return numMsg(v,!!(f&&f[2]==="n"));
@@ -1124,11 +1125,25 @@ function z8pintar(){
       (f.type==="application/pdf"?'<div class="z8img" style="display:grid;place-items:center;height:90px">📄 PDF</div>':'<img class="z8img" id="z8im" alt="">')+
       '<p class="z8p">Saldrá como: <b>'+esc(nm)+'</b>'+(_z8.msg?'<br>'+esc(_z8.msg):'')+'</p>'+
       '<div class="z8r"><button type="button" data-z8="l"'+(_z8.i===0?' disabled':'')+'>◀ Antes</button><button type="button" data-z8="r"'+(_z8.i>=arr.length-1?' disabled':'')+'>Después ▶</button></div>'+
+      (f.type==="application/pdf"?'':'<div class="z8r"><button type="button" data-z8="gi">↺ Girar a la izquierda</button><button type="button" data-z8="gd">Girar a la derecha ↻</button></div>')+
       '<button type="button" class="z8m" data-z8="m">Mover a otro grupo…</button>'+
       '<div class="z8r"><button type="button" data-z8="u"'+(_z8.undo?'':' disabled')+'>Deshacer</button><button type="button" data-z8="x">Listo</button></div>';
   }
   s.innerHTML=h;
   const im=document.getElementById("z8im"); if(im){ _z8.url=URL.createObjectURL(f); im.src=_z8.url; }
+}
+/* 2026-10-24-z15 · girar una foto 90° (la foto guardada queda ya girada: Word y motor la reciben derecha) */
+async function z8girar(f,dir){
+  let bmp=null; try{ bmp=await createImageBitmap(f); }catch(e){}
+  let w,h,src;
+  if(bmp){ src=bmp; w=bmp.width; h=bmp.height; }
+  else { const u=URL.createObjectURL(f); try{ src=await new Promise((ok,no)=>{ const im=new Image(); im.onload=()=>ok(im); im.onerror=no; im.src=u; }); }finally{ URL.revokeObjectURL(u); } w=src.naturalWidth; h=src.naturalHeight; }
+  const c=document.createElement("canvas"); c.width=h; c.height=w; const x=c.getContext("2d");
+  x.translate(h/2,w/2); x.rotate(dir*Math.PI/2); x.drawImage(src,-w/2,-h/2);
+  if(bmp&&bmp.close) bmp.close();
+  const blob=await new Promise(ok=>c.toBlob(ok,"image/jpeg",0.92)); c.width=c.height=0;
+  if(!blob) return null;
+  const nf=new File([blob],f.name,{type:"image/jpeg"}); return nf;
 }
 function z8snap(rs){ const o={}; rs.forEach(r=>{ o[r]=(fotos[r]||[]).slice(); }); return o; }
 async function z8guardar(rs){ for(const r of rs){ const ok=await fotosBD.reescribir(r,fotos[r]||[]); if(ok==null) alert("⚠ No se pudo guardar el nuevo orden de este grupo en el teléfono. Si cierras la app podría volver al orden anterior."); pintar(r); } }
@@ -1142,6 +1157,7 @@ async function z8click(e){
   _z8.busy=true;
   try{
     if(a==="l"||a==="r"){ const k=a==="l"?i-1:i+1; if(k>=0&&k<arr.length){ _z8.undo={snap:z8snap([r]),r:r,i:i}; const x=arr[i]; arr[i]=arr[k]; arr[k]=x; _z8.i=k; _z8.msg=""; await z8guardar([r]); } }
+    else if(a==="gi"||a==="gd"){ const f=arr[i]; if(f&&f.type!=="application/pdf"){ _z8.msg="Girando…"; const nf=await z8girar(f,a==="gd"?1:-1); if(nf){ _z8.undo={snap:z8snap([r]),r:r,i:i}; arr[i]=nf; _z8.msg=""; await z8guardar([r]); } else _z8.msg="No se pudo girar esta foto."; } }
     else if(t){ const f=arr[i]; if(f){ _z8.undo={snap:z8snap([r,t]),r:r,i:i}; arr.splice(i,1); (fotos[t]=fotos[t]||[]).push(f); _z8.r=t; _z8.i=fotos[t].length-1; _z8.modo="main"; const tn=(rolesActuales().find(x=>x[0]===t)||[0,t])[1]; _z8.msg="Pasó a «"+tn+"»."; await z8guardar([r,t]); } }
     else if(a==="u"&&_z8.undo){ const u=_z8.undo; Object.keys(u.snap).forEach(k=>{ fotos[k]=u.snap[k]; }); _z8.undo=null; _z8.r=u.r; _z8.i=u.i; _z8.modo="main"; _z8.msg="Deshecho."; await z8guardar(Object.keys(u.snap)); }
   }finally{ _z8.busy=false; }
