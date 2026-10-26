@@ -385,19 +385,33 @@ const RUTAS={
  "Finca|Con mejoras":["INICIO","PERS","FIN_TIPO","CANVAS","LEGAL","TER","FIN","FCM","OBRAS_F","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
  "Vehículo":["INICIO","VEH","VREG","VREG2","REV","VACC","COMUN","FOTOS"]
 };
-SECC.OBRAS={t:"Obras complementarias",f:[D("Q_OBRA_CISTERNA_MED","Cisterna · medida (m², m³ o unidad)"),D("Q_OBRA_CISTERNA_VALOR","Cisterna · valor unitario (RD$)"),D("Q_OBRA_POZO_MED","Pozo tubular · medida (m², m³ o unidad)"),D("Q_OBRA_POZO_VALOR","Pozo tubular · valor unitario (RD$)"),D("Q_OBRA_PISCINA_MED","Piscina · medida (m², m³ o unidad)"),D("Q_OBRA_PISCINA_VALOR","Piscina · valor unitario (RD$)"),D("Q_OBRA_JACUZZI_MED","Jacuzzi · medida (m², m³ o unidad)"),D("Q_OBRA_JACUZZI_VALOR","Jacuzzi · valor unitario (RD$)"),D("Q_OBRA_JARDINERIA_MED","Jardinería · medida (m², m³ o unidad)"),D("Q_OBRA_JARDINERIA_VALOR","Jardinería · valor unitario (RD$)"),D("Q_OBRA_VERJA_AREA","Verja · área (m²)"),D("Q_OBRA_VERJA_VALOR","Verja · valor unitario (RD$)"),T("Q_OBRA_OTRA_DESC","Otra obra · descripción"),D("Q_OBRA_OTRA_MED","Otra obra · medida"),D("Q_OBRA_OTRA_VALOR","Otra obra · valor unitario (RD$)")]};
-SECC.OBRAS_F={t:"Obras complementarias",f:[...SECC.OBRAS.f,D("Q_OBRA_VERJAF_AREA","Verja frontal · área (m²)"),D("Q_OBRA_VERJAF_VALOR","Verja frontal · valor unitario (RD$)")]};
+SECC.OBRAS={t:"Obras complementarias",f:[D("Q_OBRA_CISTERNA_MED","Cisterna · cantidad"),D("Q_OBRA_CISTERNA_VALOR","Cisterna · valor unitario (RD$)"),D("Q_OBRA_POZO_MED","Pozo tubular · cantidad"),D("Q_OBRA_POZO_VALOR","Pozo tubular · valor unitario (RD$)"),D("Q_OBRA_PISCINA_MED","Piscina · cantidad"),D("Q_OBRA_PISCINA_VALOR","Piscina · valor unitario (RD$)"),D("Q_OBRA_JACUZZI_MED","Jacuzzi · cantidad"),D("Q_OBRA_JACUZZI_VALOR","Jacuzzi · valor unitario (RD$)"),D("Q_OBRA_JARDINERIA_MED","Jardinería · cantidad"),D("Q_OBRA_JARDINERIA_VALOR","Jardinería · valor unitario (RD$)"),D("Q_OBRA_VERJA_AREA","Verja · cantidad"),D("Q_OBRA_VERJA_VALOR","Verja · valor unitario (RD$)"),T("Q_OBRA_OTRA_DESC","Otra obra · descripción"),D("Q_OBRA_OTRA_MED","Otra obra · cantidad"),D("Q_OBRA_OTRA_VALOR","Otra obra · valor unitario (RD$)")]};
+SECC.OBRAS_F={t:"Obras complementarias",f:[...SECC.OBRAS.f,D("Q_OBRA_VERJAF_AREA","Verja frontal · cantidad"),D("Q_OBRA_VERJAF_VALOR","Verja frontal · valor unitario (RD$)")]};
 const OBRA_ROWS=[["CISTERNA","MED"],["POZO","MED"],["PISCINA","MED"],["JACUZZI","MED"],["JARDINERIA","MED"],["VERJA","AREA"],["VERJAF","AREA"],["OTRA","MED"]];
 function obraNum(k){const v=numNorm(D_[k],false); return (v===""||v==null)?null:Number(v);}
 function obraTotal(){ let t=0,n=0; OBRA_ROWS.forEach(r=>{const m=obraNum("Q_OBRA_"+r[0]+"_"+r[1]), v=obraNum("Q_OBRA_"+r[0]+"_VALOR"); if(m!=null&&v!=null){t+=m*v;n++;}}); return {t,n}; }
-function obraResumen(){ const r=obraTotal(); return r.n?("Obras con medida y valor: "+r.n+" · Total RD$ "+Math.round(r.t).toLocaleString("en-US")+" (referencia; el total oficial lo calcula el Word)"):"Llena medida y valor de las obras que existan; las demás déjalas vacías."; }
+function obraResumen(){ const r=obraTotal(); return r.n?("Obras con cantidad y valor: "+r.n+" · Total RD$ "+Math.round(r.t).toLocaleString("en-US")+" (referencia; el total oficial lo calcula el Word)"):"Llena cantidad y valor de las obras que existan; las demás déjalas vacías."; }
+/* 2026-10-25-z28 · unidad de cada obra: m², ml, m³, unidad, P.A. u otra escrita; clave Q_OBRA_<OBRA>_UNIDAD (opcional; si no se elige no se manda y el Word usa la de siempre) */
+const OBRA_UNI=["m²","ml","m³","unidad","P.A."];
+function obraUniHTML(k){ const uk=k.replace(/_(MED|AREA)$/,"_UNIDAD"), cur=String(D_[uk]||""), otra=cur&&!OBRA_UNI.includes(cur);
+  return `<div class="hint" style="margin:6px 0 2px">Unidad de la cantidad (si no eliges, el Word usa la de siempre):</div><div class="chips" data-uni="${uk}">`+OBRA_UNI.map(x=>`<button type="button" class="chip${cur===x?" on":""}" data-un="${uk}" data-u="${x}">${x}</button>`).join("")+`<button type="button" class="chip${otra?" on":""}" data-un="${uk}" data-u="__otra">Otra…</button></div><input type="text" class="obraOtraU" id="u_${uk}" data-uotra="${uk}" placeholder="Escribe la unidad (ej. kg, qq, tarea)" maxlength="20" autocomplete="off" value="${esc(otra?cur:"")}"${otra?"":" hidden"} style="margin-top:6px">`; }
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-un]"); if(!b) return; const uk=b.dataset.un, u=b.dataset.u, base=uk.replace(/_UNIDAD$/,""), mk=D_.hasOwnProperty(base+"_AREA")||/_(VERJA|VERJAF)$/.test(base)?base+"_AREA":base+"_MED";
+  const g=document.querySelector(`[data-uni="${uk}"]`), inp=document.getElementById("u_"+uk); const cur=String(D_[uk]||"");
+  if(u==="__otra"){ const abre=inp.hidden; inp.hidden=!abre; if(abre){ if(OBRA_UNI.includes(cur)) D_[uk]=""; inp.focus(); } else { if(!OBRA_UNI.includes(cur)) D_[uk]=""; inp.value=""; } }
+  else if(cur===u){ delete D_[uk]; if(u==="P.A."){ delete D_["PA_"+mk]; } }
+  else { D_[uk]=u; if(inp){ inp.hidden=true; inp.value=""; } if(u==="P.A."){ D_["PA_"+mk]="1"; D_[mk]="1"; const m=document.getElementById("f_"+mk); if(m) m.value="1"; } else if(D_["PA_"+mk]==="1"){ delete D_["PA_"+mk]; } }
+  save(); if(g) g.querySelectorAll("button").forEach(x=>{ const v=x.dataset.u, c=String(D_[uk]||""); x.classList.toggle("on", v==="__otra"?(!!c&&!OBRA_UNI.includes(c)||(inp&&!inp.hidden)):c===v); });
+  const pa=document.querySelector(`[data-pa="${mk}"]`); if(pa) pa.classList.toggle("on",D_["PA_"+mk]==="1"); });
+document.addEventListener("input",e=>{ const t=e.target; if(!t.dataset||!t.dataset.uotra) return; const v=t.value.trim(); if(v) D_[t.dataset.uotra]=v; else delete D_[t.dataset.uotra]; save(); });
 function obraPintar(){ document.querySelectorAll(".obraRes").forEach(e=>e.textContent=obraResumen()); }
 document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-pa]"); if(!b) return; const k=b.dataset.pa, inp=document.getElementById("f_"+k); const on=D_["PA_"+k]==="1";
-  if(on){ delete D_["PA_"+k]; b.classList.remove("on"); } else { D_["PA_"+k]="1"; D_[k]="1"; if(inp) inp.value="1"; b.classList.add("on"); }
+  const uk=k.replace(/_(MED|AREA)$/,"_UNIDAD");
+  if(on){ delete D_["PA_"+k]; if(D_[uk]==="P.A.") delete D_[uk]; b.classList.remove("on"); } else { D_["PA_"+k]="1"; D_[k]="1"; D_[uk]="P.A."; if(inp) inp.value="1"; b.classList.add("on"); }
+  document.querySelectorAll(`[data-uni="${uk}"] button`).forEach(x=>{ const v=x.dataset.u; x.classList.toggle("on", v==="P.A."&&D_[uk]==="P.A."); });
   save(); obraPintar(); });
 /* REV15 (motor, 12/10/2026): preguntas SOLO del formulario HTML (Forms ya no tiene cupo). La clave en el JSON es el instance_id. */
 const _REVL=["01. Funcionamiento limpiaparabrisas delantero", "02. Funcionamiento limpiaparabrisas trasero", "03. Funcionamiento luz interior", "04. Funcionamiento radio", "05. Funcionamiento reloj", "06. Funcionamiento facilidad de arranque", "07. Funcionamiento tacómetro", "08. Funcionamiento techo corredizo", "09. Funcionamiento velocímetro", "10. TAPICERÍA", "11. Estado tapicería alfombras", "12. Estado carteras puertas", "13. Estado tapicería asientos", "14. Estado tapicería techo", "15. Estado del timón", "16. LUCES O INDICADORES DEL TABLERO", "17. Indicador ABS", "18. Indicador aceite", "19. Indicador airbag", "20. Indicador cerebro eléctrico", "21. Indicador check engine", "22. Indicador frenos", "23. Indicador gasolina o gas", "24. MANTENIMIENTO PARTE BAJA", "25. Fuga aceite caja transmisión", "26. Fuga aceite caja de velocidades", "27. Fuga aceite dirección hidráulica", "28. Fuga aceite motor", "29. Fuga aceite por amortiguadores", "30. Fuga aceite por bomba de embrague", "31. Fuga de líquido de frenos", "32. Fuga tanque combustible", "33. VERIFICACIÓN DE PIEZAS Y PARTES", "34. Estado carrocería", "35. Estado de gomas", "36. Estado de frenos", "37. Estado de luces", "38. Estado de pintura"];
-/* 2026-10-25-z27 · revisión con respuestas coherentes (EXPERTA-03 19:45, contrato V2.39): 17–23 indicadores y 25–32 fugas = Sí/No (defecto No); 02 y 08 ganan «No aplica»; el resto E/B/R/M (defecto Bueno). Solo se manda lo distinto del defecto de CADA pregunta. */
+/* 2026-10-26-z28 · revisión con respuestas coherentes (EXPERTA-03 19:45, contrato V2.39): 17–23 indicadores y 25–32 fugas = Sí/No (defecto No); 02 y 08 ganan «No aplica»; el resto E/B/R/M (defecto Bueno). Solo se manda lo distinto del defecto de CADA pregunta. */
 const REV_FUNC=n=>n>=1&&n<=9&&n!==2&&n!==8;          /* 01,03–07,09 funcionamiento: ¿funciona? Sí/No (05 también «No aplica»), defecto Sí. 02 y 08: ¿Tiene…? E/B/R/M/No tiene, defecto Bueno (V2.43) */
 const REV_SINO=n=>(n>=17&&n<=23)||(n>=25&&n<=32);   /* 17–23 ¿enciende alerta? · 25–32 ¿presenta fuga?: Sí/No, defecto No */
 const revNum=k=>parseInt(String(k).slice(6,8),10);
@@ -462,7 +476,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-25-z27"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-26-z28"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -515,7 +529,7 @@ function rutaDe(t,mej){
   if(t==="Finca") return RUTAS["Finca|"+(mej==="Con mejoras"?"Con mejoras":"Sin mejoras")];
   return RUTAS[t];
 }
-function clavesDe(t,mej){const ks=new Set(); rutaDe(t,mej).forEach(id=>SECC[id].f.forEach(f=>{ks.add(f[0]); if(f[2]==="o") ks.add(f[0]+"__OTRO");})); return ks;}
+function clavesDe(t,mej){const ks=new Set(); rutaDe(t,mej).forEach(id=>SECC[id].f.forEach(f=>{ks.add(f[0]); if(f[2]==="o") ks.add(f[0]+"__OTRO"); if(/^Q_OBRA_[A-Z]+_(MED|AREA)$/.test(f[0])) ks.add(f[0].replace(/_(MED|AREA)$/,"_UNIDAD"));})); return ks;}
 function rolesDe(t,mej){const id=(t==="Solar"||t==="Terreno preurbanizado")?"SOL":(t==="Solar + Mejora"||t==="Solar + Mejora con materiales")?"SM":t==="Apartamento o local"?"APT":t==="Finca"?(mej==="Con mejoras"?"FCM":"FSM"):t==="Vehículo"?"VEH":null; return (ROLES_T[id]||[]).map(r=>r[0]);}
 /* Al cambiar de tipo: avisa antes de borrar lo que no aplica al tipo nuevo */
 function cambiarTipo(k,nuevo){
@@ -579,7 +593,7 @@ function aprGet(){ try{ const o=JSON.parse(localStorage.getItem(APR_KEY)||"{}");
 function aprSet(o){ try{ localStorage.setItem(APR_KEY,JSON.stringify(o)); }catch(e){} }
 function aprDe(k){ const v=aprGet()[k]; return Array.isArray(v)?v.filter(x=>typeof x==="string"&&x.trim()):[]; }
 function aprEs(k,x){ return aprDe(k).includes(x); }
-/* 2026-10-25-z27 · con la provincia ya elegida, el municipio se ve solo por su nombre («Baní»); el dato guardado sigue siendo «Baní — Peravia» */
+/* 2026-10-26-z28 · con la provincia ya elegida, el municipio se ve solo por su nombre («Baní»); el dato guardado sigue siendo «Baní — Peravia» */
 function aprLbl(k,x){ const t=(k==="MUNICIPIO"&&D_.PROVINCIA&&x.endsWith("— "+D_.PROVINCIA))?x.slice(0,x.length-(" — "+D_.PROVINCIA).length):x; return aprEs(k,x)?"★ "+t:t; }
 function conAprendidas(k,of){
   if(!of.some(ES_OTRO)) return of;
@@ -866,8 +880,8 @@ function campo(f){
   if(f[0]==="Q_ACC_NO_TIENE") return accHTML();
   if(f[0]==="Q_ACC_SI_TIENE") return "";
   if(f[0]==="Q_REV_01_ESTADO"){ return `<div class="hint">Todo arranca en su respuesta normal: «Sí» en funcionamiento, «Bueno» en estados, «No» en indicadores y fugas (lo que no toques se toma así). Toca solo lo que no esté bien: «No» si algo no funciona, «Sí» si el indicador enciende o hay fuga, o un estado distinto de Bueno. «No aplica» está en el reloj y «No tiene» en limpiaparabrisas trasero y techo corredizo, por si el vehículo no lo trae. Volver a tocar lo elegido regresa a lo normal.</div><button type="button" class="cvbtn alt" id="revTodoB">Todo normal (funciona, Bueno, sin alerta ni fuga)</button>`+campo0(f); }
-  if(f[0]==="Q_OBRA_CISTERNA_MED") return `<div class="hint obraAviso" style="border:1.5px solid #b45309;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:600">⚠ Estas obras solo salen en el Word con la plantilla «Nueva (en prueba)». Con «Actual (probada)» no aparecen en el Word.</div>`+campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: medida 1)</button></div>`;
-  if(/^Q_OBRA_[A-Z]+_(MED|AREA)$/.test(f[0])) return campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: medida 1)</button></div>`;
+  if(f[0]==="Q_OBRA_CISTERNA_MED") return `<div class="hint obraAviso" style="border:1.5px solid #b45309;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:600">⚠ Estas obras solo salen en el Word con la plantilla «Nueva (en prueba)». Con «Actual (probada)» no aparecen en el Word.</div>`+campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: cantidad 1)</button></div>`+obraUniHTML(f[0]);
+  if(/^Q_OBRA_[A-Z]+_(MED|AREA)$/.test(f[0])) return campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: cantidad 1)</button></div>`+obraUniHTML(f[0]);
   if(f[0]==="Q_OBRA_OTRA_VALOR") return campo0(f)+`<div class="hint obraRes">${obraResumen()}</div>`;
   if(f[0]==="Q_VEH_REG_COMP_6_URL"||f[0]==="Q_VEH_REG_COMP_12_URL") return campo0(f)+`<div class="hint vregRes">${vregResumen()}</div>`;
   if(f[0]==="SRV_AGUA") return porcBig()+campo0(f);
@@ -949,7 +963,7 @@ function render(){
   nx.textContent=_exportando?"Guardando…":ult?"Guardar expediente":"Siguiente"; nx.className=ult?"ok":""; nx.disabled=_exportando||(ult&&_procesando>0);
   document.querySelectorAll("[data-k]").forEach(el=>{
     const k=el.dataset.k;
-    if(el.dataset.num==="d"&&D_[k]) el.value=kmFmt(D_[k]);   /* 2026-10-25-z27 · todo campo decimal se ve 65,000.00 */
+    if(el.dataset.num==="d"&&D_[k]) el.value=kmFmt(D_[k]);   /* 2026-10-26-z28 · todo campo decimal se ve 65,000.00 */
     el.addEventListener("input",()=>{
       D_[k]=el.value; if(k==="Q_PORC_SERVICIOS") D_.PORC_MANUAL=el.value.trim()?"1":""; save(); actualizarOtros();
       if(k==="Q_PORC_SERVICIOS") porcAviso(); if(/^Q_(PCT_VIAS|PCT_VERDES|UTILIDAD_PCT)$/.test(k)) preurbPintar(); if(/^Q_VEH_REG_COMP_\d+_(ANIO|PRECIO)$/.test(k)) vregPintar(); if(/^Q_OBRA_/.test(k)) obraPintar();
@@ -1246,7 +1260,7 @@ const MOTOR={"form_id":"hzybdMXio06RrLU34uyh6fSm4oXi-cJEgKJ2-dH9hEVUQjlTVktZVkda
 function armarJSON(){
   const tid=tidActual(), mp=(MOTOR.map[tid]||{}); const ans={};
   const ok=clavesDe(D_.TIPO_TASACION,D_.N_FINCA_MEJORAS);   /* solo campos del tipo actual */
-  Object.keys(D_).forEach(k=>{ if(!ok.has(k)||/__OTRO$/.test(k)) return; if(/^Q_(ACC_|VEH_RAPIDO)/.test(k)&&D_.Q_PLANTILLA_PRUEBA!=="Nueva (en prueba)") return; const v=valorMotor(k,D_[k]); if(!v) return;
+  Object.keys(D_).forEach(k=>{ if(!ok.has(k)||/__OTRO$/.test(k)) return; if(/^Q_(ACC_|VEH_RAPIDO)/.test(k)&&D_.Q_PLANTILLA_PRUEBA!=="Nueva (en prueba)") return; const v=valorMotor(k,D_[k]); if(!v) return; if(/^Q_OBRA_[A-Z]+_UNIDAD$/.test(k)){ const b=k.replace(/_UNIDAD$/,""); if(!String(D_[b+"_MED"]||D_[b+"_AREA"]||"").trim()) return; }
     const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z_]+|SM_[A-Z_]+|PORC_SERVICIOS|PLANTILLA_PRUEBA|OBJETIVO_USO_DE_LA_TASACION|PCT_VIAS|PCT_VERDES|OBRAS_PUBLICAS_V|UTILIDAD_PCT|VEH_REG_[A-Z0-9_]+|OBRA_[A-Z_]+|ACC_[A-Z_]+|VEH_RAPIDO_CONFIRMADO)$/.test(k)?k:null); if(id) ans[id]=v; });
   return {form_id:MOTOR.form_id,answers:ans};
 }
