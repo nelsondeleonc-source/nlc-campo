@@ -397,14 +397,14 @@ document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closes
   save(); obraPintar(); });
 /* REV15 (motor, 12/10/2026): preguntas SOLO del formulario HTML (Forms ya no tiene cupo). La clave en el JSON es el instance_id. */
 const _REVL=["01. Funcionamiento limpiaparabrisas delantero", "02. Funcionamiento limpiaparabrisas trasero", "03. Funcionamiento luz interior", "04. Funcionamiento radio", "05. Funcionamiento reloj", "06. Funcionamiento facilidad de arranque", "07. Funcionamiento tacómetro", "08. Funcionamiento techo corredizo", "09. Funcionamiento velocímetro", "10. TAPICERÍA", "11. Estado tapicería alfombras", "12. Estado carteras puertas", "13. Estado tapicería asientos", "14. Estado tapicería techo", "15. Estado del timón", "16. LUCES O INDICADORES DEL TABLERO", "17. Indicador ABS", "18. Indicador aceite", "19. Indicador airbag", "20. Indicador cerebro eléctrico", "21. Indicador check engine", "22. Indicador frenos", "23. Indicador gasolina o gas", "24. MANTENIMIENTO PARTE BAJA", "25. Fuga aceite caja transmisión", "26. Fuga aceite caja de velocidades", "27. Fuga aceite dirección hidráulica", "28. Fuga aceite motor", "29. Fuga aceite por amortiguadores", "30. Fuga aceite por bomba de embrague", "31. Fuga de líquido de frenos", "32. Fuga tanque combustible", "33. VERIFICACIÓN DE PIEZAS Y PARTES", "34. Estado carrocería", "35. Estado de gomas", "36. Estado de frenos", "37. Estado de luces", "38. Estado de pintura"];
-/* 2026-10-25-z26 · revisión con respuestas coherentes (EXPERTA-03 19:45, contrato V2.39): 17–23 indicadores y 25–32 fugas = Sí/No (defecto No); 02 y 08 ganan «No aplica»; el resto E/B/R/M (defecto Bueno). Solo se manda lo distinto del defecto de CADA pregunta. */
-const REV_FUNC=n=>n>=1&&n<=9;                       /* 01–09 funcionamiento: ¿funciona? Sí/No (02, 05 y 08 también «No aplica»), defecto Sí */
+/* 2026-10-25-z27 · revisión con respuestas coherentes (EXPERTA-03 19:45, contrato V2.39): 17–23 indicadores y 25–32 fugas = Sí/No (defecto No); 02 y 08 ganan «No aplica»; el resto E/B/R/M (defecto Bueno). Solo se manda lo distinto del defecto de CADA pregunta. */
+const REV_FUNC=n=>n>=1&&n<=9&&n!==2&&n!==8;          /* 01,03–07,09 funcionamiento: ¿funciona? Sí/No (05 también «No aplica»), defecto Sí. 02 y 08: ¿Tiene…? E/B/R/M/No tiene, defecto Bueno (V2.43) */
 const REV_SINO=n=>(n>=17&&n<=23)||(n>=25&&n<=32);   /* 17–23 ¿enciende alerta? · 25–32 ¿presenta fuga?: Sí/No, defecto No */
 const revNum=k=>parseInt(String(k).slice(6,8),10);
 const revDef=k=>{const n=revNum(k); return REV_FUNC(n)?"Sí":REV_SINO(n)?"No":"Bueno";};
 SECC.REV={t:"Revisión física del vehículo",f:_REVL.map((l,i)=>[i,l]).filter(x=>![10,16,24,33].includes(parseInt(x[1],10))).map(x=>{const l=x[1],i=x[0],n=i+1; const sn=REV_SINO(n), fn=REV_FUNC(n);
-  const lab=fn?l+(n===6?": ¿arranca con facilidad?":": ¿funciona?"):sn?(n<=23?l+": ¿enciende alerta?":l+": ¿presenta fuga?"):l;
-  const ops=fn?(n===2||n===5||n===8?["Sí","No","No aplica"]:["Sí","No"]):sn?["Sí","No"]:["Excelente","Bueno","Regular","Malo"];
+  const lab=n===2?"02. ¿Tiene limpiaparabrisas trasero? Si tiene, ¿cómo funciona?":n===8?"08. ¿Tiene techo corredizo? Si tiene, ¿cómo funciona?":fn?l+(n===6?": ¿arranca con facilidad?":": ¿funciona?"):sn?(n<=23?l+": ¿enciende alerta?":l+": ¿presenta fuga?"):l;
+  const ops=fn?(n===5?["Sí","No","No aplica"]:["Sí","No"]):sn?["Sí","No"]:(n===2||n===8?["Excelente","Bueno","Regular","Malo","No tiene"]:["Excelente","Bueno","Regular","Malo"]);
   return ["Q_REV_"+String(n).padStart(2,"0")+"_ESTADO",lab,"o",ops,"g"];})};
 /* 2026-10-25-z18 · Vehículos llenado rápido (contrato veh_rapido v1.0): las revisiones arrancan en «Bueno» (no se guarda nada) y solo se manda lo distinto; equipamiento por perfil + excepciones */
 const ACC_LISTA=[["ACC_AIRE_ACONDICIONADO","Aire acondicionado"],["ACC_ESPEJOS_ELECTRICOS","Retrovisores eléctricos"],["ACC_SEGUROS_ELECTRICOS","Seguros eléctricos"],["ACC_PUERTA_ELECTRICA","Puerta eléctrica"],["ACC_ALARMA","Alarma"],["ACC_LLAVE_INTELIGENTE","Llave inteligente"],["ACC_CAMARA_REVERSA","Cámara de reversa"],["ACC_SENSORES","Sensores"],["ACC_CRUISE_CONTROL","Control de crucero"],["ACC_LUCES_DIURNAS","Luces de encendido diurno"],["ACC_XENON","Xenón"],["ACC_LIMPIA_TRASERO","Limpiavidrios trasero"],["ACC_SUNROOF","Techo corredizo"],["ACC_ASIENTOS_PIEL","Asientos de piel"],["ACC_ASIENTOS_ELECTRICOS","Asientos eléctricos"],["ACC_CALEFACCION","Calefacción"],["ACC_MULTIMEDIA","Radio multimedia"],["ACC_BLUETOOTH","Bluetooth"],["ACC_CD_PLAYER","CD Player"],["ACC_CD_BOX","CD Box"],["ACC_NEVERA","Nevera"],["ACC_SPOILER","Spoiler trasero"],["ACC_GANCHO_REMOLQUE","Gancho de remolque"],["ACC_TURBO","Turbo"],["ACC_TRES_FILAS","Tres filas de asientos"],["ACC_TRACCION_TRASERA","Tracción trasera"],["ACC_PINTURA_FABRICA","Pintura de fábrica"]];
@@ -462,7 +462,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-25-z26"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-25-z27"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -579,7 +579,7 @@ function aprGet(){ try{ const o=JSON.parse(localStorage.getItem(APR_KEY)||"{}");
 function aprSet(o){ try{ localStorage.setItem(APR_KEY,JSON.stringify(o)); }catch(e){} }
 function aprDe(k){ const v=aprGet()[k]; return Array.isArray(v)?v.filter(x=>typeof x==="string"&&x.trim()):[]; }
 function aprEs(k,x){ return aprDe(k).includes(x); }
-/* 2026-10-25-z26 · con la provincia ya elegida, el municipio se ve solo por su nombre («Baní»); el dato guardado sigue siendo «Baní — Peravia» */
+/* 2026-10-25-z27 · con la provincia ya elegida, el municipio se ve solo por su nombre («Baní»); el dato guardado sigue siendo «Baní — Peravia» */
 function aprLbl(k,x){ const t=(k==="MUNICIPIO"&&D_.PROVINCIA&&x.endsWith("— "+D_.PROVINCIA))?x.slice(0,x.length-(" — "+D_.PROVINCIA).length):x; return aprEs(k,x)?"★ "+t:t; }
 function conAprendidas(k,of){
   if(!of.some(ES_OTRO)) return of;
@@ -865,7 +865,7 @@ function vregPintar(){ document.querySelectorAll(".vregRes").forEach(e=>e.textCo
 function campo(f){
   if(f[0]==="Q_ACC_NO_TIENE") return accHTML();
   if(f[0]==="Q_ACC_SI_TIENE") return "";
-  if(f[0]==="Q_REV_01_ESTADO"){ return `<div class="hint">Todo arranca en su respuesta normal: «Sí» en funcionamiento, «Bueno» en estados, «No» en indicadores y fugas (lo que no toques se toma así). Toca solo lo que no esté bien: «No» si algo no funciona, «Sí» si el indicador enciende o hay fuga, o un estado distinto de Bueno. «No aplica» está en limpiaparabrisas trasero, reloj y techo corredizo, por si el vehículo no lo trae. Volver a tocar lo elegido regresa a lo normal.</div><button type="button" class="cvbtn alt" id="revTodoB">Todo normal (funciona, Bueno, sin alerta ni fuga)</button>`+campo0(f); }
+  if(f[0]==="Q_REV_01_ESTADO"){ return `<div class="hint">Todo arranca en su respuesta normal: «Sí» en funcionamiento, «Bueno» en estados, «No» en indicadores y fugas (lo que no toques se toma así). Toca solo lo que no esté bien: «No» si algo no funciona, «Sí» si el indicador enciende o hay fuga, o un estado distinto de Bueno. «No aplica» está en el reloj y «No tiene» en limpiaparabrisas trasero y techo corredizo, por si el vehículo no lo trae. Volver a tocar lo elegido regresa a lo normal.</div><button type="button" class="cvbtn alt" id="revTodoB">Todo normal (funciona, Bueno, sin alerta ni fuga)</button>`+campo0(f); }
   if(f[0]==="Q_OBRA_CISTERNA_MED") return `<div class="hint obraAviso" style="border:1.5px solid #b45309;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:600">⚠ Estas obras solo salen en el Word con la plantilla «Nueva (en prueba)». Con «Actual (probada)» no aparecen en el Word.</div>`+campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: medida 1)</button></div>`;
   if(/^Q_OBRA_[A-Z]+_(MED|AREA)$/.test(f[0])) return campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: medida 1)</button></div>`;
   if(f[0]==="Q_OBRA_OTRA_VALOR") return campo0(f)+`<div class="hint obraRes">${obraResumen()}</div>`;
@@ -949,7 +949,7 @@ function render(){
   nx.textContent=_exportando?"Guardando…":ult?"Guardar expediente":"Siguiente"; nx.className=ult?"ok":""; nx.disabled=_exportando||(ult&&_procesando>0);
   document.querySelectorAll("[data-k]").forEach(el=>{
     const k=el.dataset.k;
-    if(el.dataset.num==="d"&&D_[k]) el.value=kmFmt(D_[k]);   /* 2026-10-25-z26 · todo campo decimal se ve 65,000.00 */
+    if(el.dataset.num==="d"&&D_[k]) el.value=kmFmt(D_[k]);   /* 2026-10-25-z27 · todo campo decimal se ve 65,000.00 */
     el.addEventListener("input",()=>{
       D_[k]=el.value; if(k==="Q_PORC_SERVICIOS") D_.PORC_MANUAL=el.value.trim()?"1":""; save(); actualizarOtros();
       if(k==="Q_PORC_SERVICIOS") porcAviso(); if(/^Q_(PCT_VIAS|PCT_VERDES|UTILIDAD_PCT)$/.test(k)) preurbPintar(); if(/^Q_VEH_REG_COMP_\d+_(ANIO|PRECIO)$/.test(k)) vregPintar(); if(/^Q_OBRA_/.test(k)) obraPintar();
