@@ -93,6 +93,7 @@ details.rum textarea{margin-top:8px;min-height:110px;font-size:14px}
 .cvmode{display:flex;gap:6px;margin:12px 0 0}
 .cvmode button{flex:1;font:inherit;font-size:14px;min-height:44px;padding:10px 6px;border-radius:10px;border:2px solid var(--borde);background:#fbfcf8;color:var(--carbon);cursor:pointer}
 .cvmode button.on{background:var(--negro);color:var(--verde);border-color:var(--negro);font-weight:bold}
+#estado{position:sticky;top:0;z-index:5;background:#e8eef5;color:#16365c;font-size:12.5px;font-weight:600;text-align:center;padding:4px 10px;border-bottom:1px solid #c9d3df}#estado.nueva{background:#fff3b0;color:#5a4300}#semaforo{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:6px 10px;background:#f4f6f8;border-bottom:1px solid #d9dfe6}#semaforo button{width:22px;height:22px;border-radius:11px;border:2px solid #fff;box-shadow:0 0 0 1px #8a95a3;padding:0;background:#c8cfd8}#semaforo button.v{background:#1f7a4d}#semaforo button.a{background:#e8b800}#semaforo button.r{background:#d33}#semaforo button.act{box-shadow:0 0 0 3px #16365c}.fsuave{color:#b45309;font-size:13.5px;font-weight:bold;margin:6px 0 0}.fsuave[hidden]{display:none}
 #net{background:#f5c542;color:#16181a;font-size:13px;font-weight:bold;text-align:center;padding:6px 10px}
 #net[hidden]{display:none}
 .paq{background:#fff;border:1px solid var(--borde);border-radius:12px;padding:12px;margin:10px 0}
@@ -289,6 +290,7 @@ details.rum summary{font-size:13.5px;color:var(--ink);min-height:40px}
 <symbol id="i-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></symbol>
 <symbol id="i-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
 </defs></svg>
+<div id="estado"></div><div id="semaforo"></div>
 <div id="proc" hidden></div>
 <div id="net" hidden>Sin internet · todo lo que captures se guarda en el teléfono</div>
 <div id="bar"><div></div></div>
@@ -351,11 +353,12 @@ const SECC={
  SECTOR:{t:"Sector y mercado",f:SECTOR},
  SERV:{t:"Servicios del sector",f:SERVF},
  EDIF:{t:"Edificación",f:EDIF},
- APT:{t:"Apartamento o local",f:[O("SUBTIPO_APT","¿Apartamento o local comercial?",["Apartamento","Local comercial"]),T("UNIDAD_FUNCIONAL","Unidad funcional"),T("NOMBRE_RESIDENCIAL","Nombre del residencial o edificio"),T("APTO_LOCAL","Número de apartamento o local"),L("DESCRIPCION_REGISTRAL_COMPLETA","Descripción registral completa del título"),N("ANO_CONSTRUCCION","Año de construcción (por ejemplo, 2020)"),L("CALIDAD_DESCRIPCION","Calidad constructiva: descripción"),T("CONSERVACION_RESUMEN","Conservación del edificio: resumen"),N("EDAD_INMUEBLE","Edad del inmueble (años)"),N("NIVELES_EDIFICIO","Niveles del edificio"),O("NIVEL_UNIDAD","¿En qué nivel está el apartamento o local?",["Primer nivel", "Segundo nivel", "Tercer nivel", "Cuarto nivel", "Quinto nivel", "Sexto nivel", "Séptimo nivel", "Octavo nivel", "Noveno nivel", "Décimo nivel", "Undécimo nivel", "Duodécimo nivel", "Decimotercer nivel", "Decimocuarto nivel", "Decimoquinto nivel", "Otro"]),D("SP_SUPERFICIE_M2","Superficie del sector propio (m²)")]},
+ APT:{t:"Apartamento o local",f:[O("SUBTIPO_APT","¿Apartamento o local comercial?",["Apartamento","Local comercial"]),T("UNIDAD_FUNCIONAL","Unidad funcional"),T("NOMBRE_RESIDENCIAL","Nombre del residencial o edificio"),T("APTO_LOCAL","Número de apartamento o local"),L("DESCRIPCION_REGISTRAL_COMPLETA","Descripción registral completa del título"),N("ANO_CONSTRUCCION","Año de construcción (por ejemplo, 2020)"),L("CALIDAD_DESCRIPCION","Calidad constructiva: descripción"),T("CONSERVACION_RESUMEN","Conservación del edificio: resumen"),N("EDAD_INMUEBLE","Edad del inmueble (años)"),N("NIVELES_EDIFICIO","Niveles del edificio"),O("NIVEL_UNIDAD","¿En qué nivel está el apartamento o local?",["Primer nivel", "Segundo nivel", "Tercer nivel", "Cuarto nivel", "Quinto nivel", "Sexto nivel", "Séptimo nivel", "Octavo nivel", "Noveno nivel", "Décimo nivel", "Undécimo nivel", "Duodécimo nivel", "Decimotercer nivel", "Decimocuarto nivel", "Decimoquinto nivel", "Otro"]),D("SP_SUPERFICIE_M2","Superficie del sector propio (m²)"),D("Q_APT_AREA_NETA_M2","Área neta de la unidad (m²)"),N("Q_APT_PARQUEOS_CANTIDAD","Parqueos: cantidad"),D("Q_APT_PARQUEOS_VALOR","Parqueos: valor de cada uno (RD$)"),D("Q_APT_TERRAZA_M2","Terraza: área (m²)"),D("Q_APT_TERRAZA_VALOR","Terraza: valor por m² (RD$)")]},
  FIN_TIPO:{t:"Finca — alcance",f:[O("N_FINCA_MEJORAS","¿La finca tiene mejoras?",["Sin mejoras","Con mejoras"])]},
  FSM:{t:"Finca sin mejoras",f:[L("OBSERVACIONES_ALCANCE","Observaciones del alcance de la inspección")]},
  FCM:{t:"Finca con mejoras",f:[D("AREA_CONSTRUCCION_M2","Área de construcción (m²)"),N("EDAD_MEJORAS","Edad de las mejoras (años)"),O("ESTADO_CONSERVACION_MEJORAS","Estado de conservación de las mejoras",["Malo","Regular","Bueno","Muy bueno","Excelente","No verificado"]),L("MEJORAS_CULTIVOS","Cultivos existentes en la finca"),L("MEJORAS_EDIFICACIONES","Edificaciones existentes en la finca"),L("MEJORAS_INSTALACIONES","Instalaciones existentes en la finca"),T("INFRAESTRUCTURAS_INMUEBLE","Infraestructuras y mejoras existentes en la finca")]},
  FIN:{t:"Datos de la finca",f:[T("AGUA_RIEGO","Disponibilidad de agua para riego"),T("AMENAZAS_CONFLICTOS","Amenazas o conflictos observados"),L("CARACTERISTICAS_SUELO","Características del suelo"),O("CERRAMIENTO","Cerramiento",["Sin cerramiento","Alambre de púas","Malla ciclónica","Muro de bloques","Cerca viva","Mixto","Otro"]),T("DESAGUE_NATURAL","Desagüe natural"),T("EDIFICACIONES_SECTOR","Edificaciones del entorno (fuera de la finca)"),O("FORMA_TERRENO","Forma del terreno",["Regular","Irregular","Rectangular","Cuadrada","Trapezoidal","Otra"]),T("INFRAESTRUCTURA_VIAL","Infraestructura vial"),T("ORIENTACION","Orientación"),O("USO_ACTUAL_TERRENO","Uso actual del terreno",["Agrícola","Ganadero","Mixto agrícola-ganadero","Forestal","Sin uso","Otro"])]},
+ APTCOMP:{t:"Comparables de apartamento o local",f:[T("Q_APT_COMP_FECHA_CONSULTA","Fecha de consulta de los anuncios (dd/mm/aaaa)"),O("Q_APT_COMP_MONEDA","Moneda de los precios publicados",["RD$","US$"]),T("Q_APT_COMP_1_UBICACION","C1 · Residencial y sector"),D("Q_APT_COMP_1_AREA_M2","C1 · Área (m²)"),D("Q_APT_COMP_1_PRECIO","C1 · Precio publicado"),T("Q_APT_COMP_1_URL","C1 · Enlace del anuncio"),T("Q_APT_COMP_2_UBICACION","C2 · Residencial y sector"),D("Q_APT_COMP_2_AREA_M2","C2 · Área (m²)"),D("Q_APT_COMP_2_PRECIO","C2 · Precio publicado"),T("Q_APT_COMP_2_URL","C2 · Enlace del anuncio"),T("Q_APT_COMP_3_UBICACION","C3 · Residencial y sector"),D("Q_APT_COMP_3_AREA_M2","C3 · Área (m²)"),D("Q_APT_COMP_3_PRECIO","C3 · Precio publicado"),T("Q_APT_COMP_3_URL","C3 · Enlace del anuncio"),T("Q_APT_COMP_4_UBICACION","C4 · Residencial y sector"),D("Q_APT_COMP_4_AREA_M2","C4 · Área (m²)"),D("Q_APT_COMP_4_PRECIO","C4 · Precio publicado"),T("Q_APT_COMP_4_URL","C4 · Enlace del anuncio"),T("Q_APT_COMP_5_UBICACION","C5 · Residencial y sector"),D("Q_APT_COMP_5_AREA_M2","C5 · Área (m²)"),D("Q_APT_COMP_5_PRECIO","C5 · Precio publicado"),T("Q_APT_COMP_5_URL","C5 · Enlace del anuncio"),T("Q_APT_COMP_6_UBICACION","C6 · Residencial y sector"),D("Q_APT_COMP_6_AREA_M2","C6 · Área (m²)"),D("Q_APT_COMP_6_PRECIO","C6 · Precio publicado"),T("Q_APT_COMP_6_URL","C6 · Enlace del anuncio")]},
  VREG:{t:"Comparables de vehículo (regresión por edad)",f:[T("Q_VEH_REG_FECHA_CONSULTA","Fecha de consulta de los anuncios (dd/mm/aaaa)"),T("Q_VEH_REG_COMP_1_MODELO","C1 · Modelo y versión"),N("Q_VEH_REG_COMP_1_ANIO","C1 · Año"),D("Q_VEH_REG_COMP_1_PRECIO","C1 · Precio publicado (US$)"),D("Q_VEH_REG_COMP_1_KM","C1 · Kilometraje (informativo)"),T("Q_VEH_REG_COMP_1_TRACCION","C1 · Tracción (4x4, AWD, delantera…)"),T("Q_VEH_REG_COMP_1_VENDEDOR","C1 · Vendedor"),T("Q_VEH_REG_COMP_1_TEL","C1 · Teléfono"),T("Q_VEH_REG_COMP_1_URL","C1 · Enlace del anuncio (SuperCarros)"),
  T("Q_VEH_REG_COMP_2_MODELO","C2 · Modelo y versión"),N("Q_VEH_REG_COMP_2_ANIO","C2 · Año"),D("Q_VEH_REG_COMP_2_PRECIO","C2 · Precio publicado (US$)"),D("Q_VEH_REG_COMP_2_KM","C2 · Kilometraje (informativo)"),T("Q_VEH_REG_COMP_2_TRACCION","C2 · Tracción (4x4, AWD, delantera…)"),T("Q_VEH_REG_COMP_2_VENDEDOR","C2 · Vendedor"),T("Q_VEH_REG_COMP_2_TEL","C2 · Teléfono"),T("Q_VEH_REG_COMP_2_URL","C2 · Enlace del anuncio (SuperCarros)"),
  T("Q_VEH_REG_COMP_3_MODELO","C3 · Modelo y versión"),N("Q_VEH_REG_COMP_3_ANIO","C3 · Año"),D("Q_VEH_REG_COMP_3_PRECIO","C3 · Precio publicado (US$)"),D("Q_VEH_REG_COMP_3_KM","C3 · Kilometraje (informativo)"),T("Q_VEH_REG_COMP_3_TRACCION","C3 · Tracción (4x4, AWD, delantera…)"),T("Q_VEH_REG_COMP_3_VENDEDOR","C3 · Vendedor"),T("Q_VEH_REG_COMP_3_TEL","C3 · Teléfono"),T("Q_VEH_REG_COMP_3_URL","C3 · Enlace del anuncio (SuperCarros)"),
@@ -380,7 +383,7 @@ const RUTAS={
  "Terreno preurbanizado":["INICIO","PERS","CANVAS","LEGAL","TER","SECTOR","SERV","PREURB","CENTROS","COMUN","FOTOS"],
  "Solar + Mejora":["INICIO","PERS","CANVAS","LEGAL","TER","EDIF","OBRAS","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
  "Solar + Mejora con materiales":["INICIO","PERS","CANVAS","LEGAL","TER","EDIF","SM_MAT","OBRAS","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
- "Apartamento o local":["INICIO","PERS","LEGAL","APT","APT_DESC","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
+ "Apartamento o local":["INICIO","PERS","LEGAL","APT","APT_DESC","APTCOMP","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
  "Finca|Sin mejoras":["INICIO","PERS","FIN_TIPO","CANVAS","LEGAL","TER","FIN","FSM","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
  "Finca|Con mejoras":["INICIO","PERS","FIN_TIPO","CANVAS","LEGAL","TER","FIN","FCM","OBRAS_F","SECTOR","SERV","CENTROS","COMUN","FOTOS"],
  "Vehículo":["INICIO","VEH","VREG","VREG2","REV","VACC","COMUN","FOTOS"]
@@ -476,7 +479,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-26-z28"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-27-z31"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -652,7 +655,8 @@ function errorCampo(k){
 }
 function revisarCampo(el,mostrar){
   const k=el.dataset.k||el.dataset.dist, e=document.getElementById("e_"+k), msg=errorCampo(k);
-  if(!msg){ el.classList.remove("bad"); if(e){e.hidden=true;e.textContent="";} return true; }
+  if(!msg){ el.classList.remove("bad"); const sv=mostrar?avisoSuave(k):""; if(e){ if(sv){e.hidden=false;e.textContent="⚠ "+sv;e.classList.add("fsuave");} else {e.hidden=true;e.textContent="";e.classList.remove("fsuave");} } return true; }
+  if(e) e.classList.remove("fsuave");
   if(mostrar){ el.classList.add("bad"); if(e){e.hidden=false;e.textContent="⚠ "+msg;} }
   return false;
 }
@@ -870,11 +874,17 @@ function vregCalc(){ const num=x=>{const v=numNorm(D_[x],false); return (v===""|
   const fi=(D_.FECHA_DE_INSPECCION||"").match(/(\d{4})/g); const ya=(fi&&fi.length?Number(fi[fi.length-1]):new Date().getFullYear());
   const pts=[]; for(let n=1;n<=12;n++){ const a=num("Q_VEH_REG_COMP_"+n+"_ANIO"), p=num("Q_VEH_REG_COMP_"+n+"_PRECIO"); if(a!=null&&p!=null) pts.push([ya-a,p]); }
   return {pts,ya}; }
-function vregResumen(){ const {pts,ya}=vregCalc(); const n=pts.length; if(n<3) return "Comparables completos (año y precio): "+n+". Se necesitan al menos 3 (ideal 6 o más).";
+function vregResumen(){ const {pts,ya}=vregCalc(); const n=pts.length; if(n<3) return "⚠ Comparables completos (año y precio): "+n+". Se necesitan al menos 3 (ideal 6 o más).";
   const mx=pts.reduce((a,p)=>a+p[0],0)/n, my=pts.reduce((a,p)=>a+p[1],0)/n; let sxx=0,sxy=0,syy=0; pts.forEach(p=>{sxx+=(p[0]-mx)**2; sxy+=(p[0]-mx)*(p[1]-my); syy+=(p[1]-my)**2;});
   if(!sxx) return "Todos los comparables tienen la misma edad: no se puede calcular."; const b=sxy/sxx, a=my-b*mx, r2=syy?sxy*sxy/(sxx*syy):1;
   const ea=Number(numNorm(D_.VEHICULO_ANO,true)); let t="Comparables: "+n+" · R² "+r2.toFixed(3)+" (referencia; el cálculo oficial lo hace el motor)";
-  if(ea){ const v=a+b*(ya-ea); t+=" · valor aprox. con edad "+(ya-ea)+": US$ "+Math.round(v).toLocaleString("en-US"); } return t; }
+  if(ea){ const v=a+b*(ya-ea); t+=" · valor aprox. con edad "+(ya-ea)+": US$ "+Math.round(v).toLocaleString("en-US"); } if(r2<0.7) t="⚠ R² bajo (menor de 0.7): revisa o cambia comparables. "+t; return t; }
+function aptCompCalc(){ const num=x=>{const v=numNorm(D_[x],false); return (v===""||v==null)?null:Number(v);}; const pts=[];
+  for(let n=1;n<=6;n++){ const a=num("Q_APT_COMP_"+n+"_AREA_M2"), p=num("Q_APT_COMP_"+n+"_PRECIO"); if(a&&p) pts.push([n,p/a]); } return pts; }
+function aptCompResumen(){ const pts=aptCompCalc(), n=pts.length, mon=D_.Q_APT_COMP_MONEDA||"";
+  if(n<3) return "⚠ Comparables completos (área y precio): "+n+". Se necesitan al menos 3.";
+  const m=pts.reduce((a,p)=>a+p[1],0)/n; return "Comparables: "+n+" · promedio "+(mon?mon+" ":"")+Math.round(m).toLocaleString("en-US")+" por m² (referencia; el cálculo oficial lo hace el Word)"; }
+function aptCompPintar(){ document.querySelectorAll(".aptCompRes").forEach(e=>e.textContent=aptCompResumen()); }
 function vregPintar(){ document.querySelectorAll(".vregRes").forEach(e=>e.textContent=vregResumen()); }
 function campo(f){
   if(f[0]==="Q_ACC_NO_TIENE") return accHTML();
@@ -883,6 +893,7 @@ function campo(f){
   if(f[0]==="Q_OBRA_CISTERNA_MED") return `<div class="hint obraAviso" style="border:1.5px solid #b45309;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:600">⚠ Estas obras solo salen en el Word con la plantilla «Nueva (en prueba)». Con «Actual (probada)» no aparecen en el Word.</div>`+campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: cantidad 1)</button></div>`+obraUniHTML(f[0]);
   if(/^Q_OBRA_[A-Z]+_(MED|AREA)$/.test(f[0])) return campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: cantidad 1)</button></div>`+obraUniHTML(f[0]);
   if(f[0]==="Q_OBRA_OTRA_VALOR") return campo0(f)+`<div class="hint obraRes">${obraResumen()}</div>`;
+  if(f[0]==="Q_APT_COMP_6_URL") return campo0(f)+`<div class="hint aptCompRes">${aptCompResumen()}</div>`;
   if(f[0]==="Q_VEH_REG_COMP_6_URL"||f[0]==="Q_VEH_REG_COMP_12_URL") return campo0(f)+`<div class="hint vregRes">${vregResumen()}</div>`;
   if(f[0]==="SRV_AGUA") return porcBig()+campo0(f);
   if(f[0]==="Q_UTILIDAD_PCT") return campo0(f)+`<div class="hint" id="preurbRes">${preurbResumen()}</div>`;
@@ -929,6 +940,42 @@ function fotosHTML(){
   return Z7.selectorHTML()+`<div class="msg">Cada foto se guarda con el nombre que lee el botón «Cargar carpeta completa» del Word (ej. Entorno (1).jpg, Titulo (1).jpg). No necesitas renombrar nada. Toca una foto para moverla de lugar o pasarla a otro grupo. Para quitar una foto equivocada, toca la × roja de su miniatura.</div>`+
   rolesActuales().map(([r,n,p,pdf])=>`<div class="foto" data-mej="${Z7.tipoMej(r)}"><div class="fh">${ICO(ICO_FOTO[r]||"doc")}<div class="fn"><b>${esc(n)}</b></div><span class="cnt" id="ct_${r}">0</span><label class="add" title="Agregar ${pdf?"fotos o PDF":"fotos"}" aria-label="Agregar ${esc(n)}">+<input type="file" accept="${pdf?"image/*,application/pdf":"image/*"}" multiple data-r="${r}"></label></div><div class="thumbs" id="th_${r}"></div>${Z7.nombreHTML(r,p)}</div>`).join("");
 }
+/* ===== 2026-10-27-z29 · franja fija con versión y estado, resumen antes de guardar, avisos suaves ===== */
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("#semaforo button[data-sem]"); if(!b) return; paso=Number(b.dataset.sem); render(); window.scrollTo(0,0); });
+document.addEventListener("change",()=>{ try{ semaforoPintar(); }catch(e){} });
+function duplicarCaso(){
+  if(!hayDatos()){ alert("Todavía no hay datos que copiar."); return; }
+  if(!confirm("Se empieza un caso nuevo con lo mismo de este: tipo, plantilla, banco, finalidad, tasa, provincia y municipio, y las unidades de las obras.\n\nSe vacían: propietario, direcciones, fotos, croquis y todos los valores.\n\n¿Continuar?")) return;
+  const keep={}; Object.keys(D_).forEach(k=>{ if(/^(TIPO_TASACION|N_FINCA_MEJORAS|Q_PLANTILLA_PRUEBA|BANCO|BANCO__OTRO|Q_OBJETIVO_USO_DE_LA_TASACION|TASA_DOLAR_USD|PROVINCIA|MUNICIPIO)$/.test(k)||/^Q_OBRA_.*_UNIDAD$/.test(k)||/^Q_OBRA_.*_UNIDAD_OTRA$/.test(k)) { if(D_[k]!==""&&D_[k]!=null) keep[k]=D_[k]; } });
+  try{ localStorage.setItem("nlc_form",JSON.stringify(keep)); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_z7_nom"); }catch(e){}
+  fotosBD.limpiar().then(()=>location.reload()); }
+function estadoPintar(){ const e=document.getElementById("estado"); if(!e) return; const nueva=D_.Q_PLANTILLA_PRUEBA==="Nueva (en prueba)"; e.textContent="App "+APP_VER.split("-").pop()+" · Plantilla: "+(nueva?"Nueva (en prueba)":"Actual (probada)"); e.className=nueva?"nueva":""; }
+function avisoSuave(k){ const v=D_[k]; if(v==null||String(v).trim()==="") return "";
+  if(k==="VEHICULO_KILOMETRAJE"){ const n=Number(numNorm(v,false,true)); if(!isNaN(n)&&n>999999) return "Kilometraje muy alto: ¿está bien escrito?"; }
+  if(k==="VEHICULO_ANO"){ const n=Number(numNorm(v,true)); const y=new Date().getFullYear(); if(!isNaN(n)&&(n<1950||n>y+1)) return "Año poco probable: revísalo."; }
+  if(k==="TASA_DOLAR_USD"){ const n=Number(numNorm(v,false)); if(!isNaN(n)&&(n<20||n>200)) return "Tasa del dólar fuera de lo normal: revísala."; }
+  return ""; }
+function seccionConteo(id){ const sec=SECC[id]; if(!sec) return null;
+  if(id==="FOTOS"){ const n=Object.values(fotos).reduce((a,x)=>a+((x&&x.length)||0),0); return {tot:1,vac:n?0:1}; }
+  if(!sec.f||!sec.f.length) return null; let tot=0,vac=0;
+  for(const f of sec.f){ const k=f[0]; if(/__OTRO$/.test(k)||/^Q_(REV_|ACC_|VEH_RAPIDO)/.test(k)) continue;
+    let h=""; try{ h=campo(f); }catch(e){ h="x"; } if(!h) continue; tot++; const v=D_[k]; if(v==null||String(v).trim()==="") vac++; }
+  return {tot,vac}; }
+function semaforoPintar(){ const e=document.getElementById("semaforo"); if(!e||vista==="cola") return; const R=ruta(); let h="";
+  R.forEach((id,i)=>{ const c=seccionConteo(id); let cl=""; if(c&&c.tot){ cl=c.vac===0?"v":(c.vac===c.tot?"r":"a"); }
+    h+=`<button type="button" class="${cl}${i===paso?" act":""}" data-sem="${i}" aria-label="${esc(SECC[id].t)}" title="${esc(SECC[id].t)}"></button>`; });
+  e.innerHTML=h; e.hidden=false; }
+function resumenVacios(){ const out=[]; const R=ruta();
+  for(const id of R){ const sec=SECC[id]; if(!sec||!sec.f||!sec.f.length) continue; const fal=[];
+    for(const f of sec.f){ const k=f[0]; if(/__OTRO$/.test(k)||/^Q_(REV_|ACC_|VEH_RAPIDO)/.test(k)) continue;
+      let h=""; try{ h=campo(f); }catch(e){ h="x"; } if(!h) continue;
+      const v=D_[k]; if(v!=null&&String(v).trim()!=="") continue;
+      const cd=(CT[tidActual()]||{})[k]; fal.push(((cd&&cd.l)||f[1]||k).replace(/\s+/g," ")); }
+    if(fal.length) out.push({id,t:sec.t,fal}); }
+  return out; }
+function resumenTexto(L){ const n=L.reduce((a,x)=>a+x.fal.length,0); let t="Quedaron "+n+" dato(s) vacíos que saldrán como «—» en el Word:\n";
+  let mostrados=0; for(const x of L){ t+="\n• "+x.t+" ("+x.fal.length+"): "+x.fal.slice(0,3).join("; ")+(x.fal.length>3?"…":""); mostrados++; if(mostrados>=8&&L.length>8){ t+="\n• …y "+(L.length-8)+" sección(es) más"; break; } }
+  return t+"\n\nAceptar: guardar así.\nCancelar: volver a revisar."; }
 function render(){
   if(vista==="cola"){ wakeOff(); renderCola(); return; }
   document.querySelector(".nav").style.display="";
@@ -936,11 +983,12 @@ function render(){
   try{localStorage.setItem("nlc_paso",String(paso))}catch(e){}   /* al reabrir, la app vuelve a este paso */
   const s=SECC[R[paso]];
   const cuerpo=R[paso]==="FOTOS"?fotosHTML():R[paso]==="CANVAS"?canvasHTML():(R[paso]==="REV"?`<div class="msg">Toca el estado de cada renglón. Lo que dejes sin marcar no se envía y lo completas en el Word. Volver a tocar un estado lo quita.</div>`:"")+`<div class="card">${s.f.map(campo).join("")}</div>`;
-  document.getElementById("app").innerHTML=`<div class="paso">Paso ${paso+1} de ${R.length}</div><h2>${s.t}</h2>`+cuerpo+(R[paso]==="FOTOS"||R[paso]==="INICIO"&&hayDatos()?`<button type="button" class="cvbtn alt" id="borrB" style="margin-top:14px">💾 Guardar borrador para seguir en otro aparato</button>`:"")+(R[paso]==="FOTOS"?`<div class="msg">Al tocar «Guardar expediente», todo queda dentro del teléfono (aunque no tengas internet). Después lo guardas en Descargas y lo subes a OneDrive (carpeta Recepcion).</div>`:"")+(R[paso]==="INICIO"?`<div id="instalarHueco"></div><button type="button" class="cvbtn alt" id="abrirExp" style="margin-top:14px">📂 Abrir expediente o borrador (.zip)</button><input type="file" id="abrirIn" accept=".zip,application/zip,application/x-zip-compressed" hidden><div class="gpsr" id="abrirMsg"></div><button type="button" class="nuevo" id="nuevoExp">🗑 Empezar expediente nuevo (borra todo lo guardado)</button>`:"");
+  document.getElementById("app").innerHTML=`<div class="paso">Paso ${paso+1} de ${R.length}</div><h2>${s.t}</h2>`+cuerpo+(R[paso]==="FOTOS"||R[paso]==="INICIO"&&hayDatos()?`<button type="button" class="cvbtn alt" id="borrB" style="margin-top:14px">💾 Guardar borrador para seguir en otro aparato</button>`:"")+(R[paso]==="FOTOS"?`<div class="msg">Al tocar «Guardar expediente», todo queda dentro del teléfono (aunque no tengas internet). Después lo guardas en Descargas y lo subes a OneDrive (carpeta Recepcion).</div>`:"")+(R[paso]==="INICIO"?`<div id="instalarHueco"></div><button type="button" class="cvbtn alt" id="abrirExp" style="margin-top:14px">📂 Abrir expediente o borrador (.zip)</button><input type="file" id="abrirIn" accept=".zip,application/zip,application/x-zip-compressed" hidden><div class="gpsr" id="abrirMsg"></div><button type="button" class="cvbtn alt" id="dupExp" style="margin-top:14px">📋 Empezar caso nuevo copiando este (zona, plantilla y obras)</button><button type="button" class="nuevo" id="nuevoExp">🗑 Empezar expediente nuevo (borra todo lo guardado)</button>`:"");
   if(R[paso]==="INICIO") aprBoton();
   if(R[paso]==="INICIO") cola.listar().then(L=>{ if(!L.length||vista==="cola"||ruta()[paso]!=="INICIO"||document.getElementById("colaB")) return; const b=document.createElement("button"); b.type="button"; b.id="colaB"; b.className="cvbtn alt"; b.style.marginTop="14px"; b.textContent="📦 Expedientes guardados en el teléfono ("+L.length+")"; b.onclick=()=>{vista="cola";ponerTrampa();render();}; document.getElementById("app").appendChild(b); });
   const ab=document.getElementById("abrirExp"), ai=document.getElementById("abrirIn"); if(ab&&ai){ ab.onclick=()=>{ai.value="";ai.click();}; ai.onchange=()=>abrirExpediente(ai.files&&ai.files[0]); }
   const bb=document.getElementById("borrB"); if(bb) bb.onclick=guardarBorrador;
+  const db=document.getElementById("dupExp"); if(db) db.onclick=duplicarCaso;
   const nb=document.getElementById("nuevoExp"); if(nb) nb.onclick=()=>{ if(confirm("¿Borrar todos los datos, el croquis y las fotos de este expediente y empezar de cero?")){ try{localStorage.removeItem("nlc_form");localStorage.removeItem("nlc_canvas");localStorage.removeItem("nlc_paso");localStorage.removeItem("nlc_z7_nom");}catch(e){} fotosBD.limpiar().then(()=>location.reload()); } };
   document.querySelectorAll("[data-chip]").forEach(g=>g.addEventListener("click",e=>{
     const b=e.target.closest("button[data-v]"); if(!b) return;
@@ -958,6 +1006,7 @@ function render(){
     if(k==="PROVINCIA") render();
   }));
   document.querySelector("#bar div").style.width=((paso+1)/R.length*100)+"%";
+  estadoPintar(); semaforoPintar();
   document.getElementById("prev").style.visibility=paso?"visible":"hidden";
   const nx=document.getElementById("next"); const ult=paso===R.length-1;
   nx.textContent=_exportando?"Guardando…":ult?"Guardar expediente":"Siguiente"; nx.className=ult?"ok":""; nx.disabled=_exportando||(ult&&_procesando>0);
@@ -966,12 +1015,13 @@ function render(){
     if(el.dataset.num==="d"&&D_[k]) el.value=kmFmt(D_[k]);   /* 2026-10-26-z28 · todo campo decimal se ve 65,000.00 */
     el.addEventListener("input",()=>{
       D_[k]=el.value; if(k==="Q_PORC_SERVICIOS") D_.PORC_MANUAL=el.value.trim()?"1":""; save(); actualizarOtros();
-      if(k==="Q_PORC_SERVICIOS") porcAviso(); if(/^Q_(PCT_VIAS|PCT_VERDES|UTILIDAD_PCT)$/.test(k)) preurbPintar(); if(/^Q_VEH_REG_COMP_\d+_(ANIO|PRECIO)$/.test(k)) vregPintar(); if(/^Q_OBRA_/.test(k)) obraPintar();
+      if(k==="Q_PORC_SERVICIOS") porcAviso(); if(/^Q_(PCT_VIAS|PCT_VERDES|UTILIDAD_PCT)$/.test(k)) preurbPintar(); if(/^Q_VEH_REG_COMP_\d+_(ANIO|PRECIO)$/.test(k)) vregPintar(); if(/^Q_APT_COMP_\d+_(AREA_M2|PRECIO)$/.test(k)) aptCompPintar(); if(/^Q_OBRA_/.test(k)) obraPintar();
       if(/^Q_SM_/.test(k)) carRefrescar();
       if(el.dataset.num) revisarCampo(el,false);   /* mientras escribe solo se quita el rojo; se marca al salir del campo */
       if(k==="PROVINCIA"){D_.MUNICIPIO="";save();render();}
     });
     if(/__OTRO$/.test(k)) el.addEventListener("change",()=>aprAprenderYa(k.slice(0,-6),el.value));
+    if(!el.dataset.num&&!/__OTRO$/.test(k)&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA")) el.addEventListener("change",()=>{ const t=el.value.trim(); const m=/^(si|sí|no)$/i.exec(t); if(m&&t!==(/^no$/i.test(t)?"No":"Sí")){ const nv=/^no$/i.test(t)?"No":"Sí"; el.value=nv; D_[k]=nv; save(); } });
     if(el.dataset.num) el.addEventListener("change",()=>{
       if(el.dataset.num==="d"){ const nk=numNorm(el.value,false,k==="VEHICULO_KILOMETRAJE"); if(nk!=null&&nk!==""){ D_[k]=nk; el.value=kmFmt(nk); save(); } revisarCampo(el,true); return; }
       const n=numNorm(el.value,el.dataset.num==="n"); if(n!=null&&n!==el.value){ el.value=n; D_[k]=n; save(); }
@@ -1261,7 +1311,7 @@ function armarJSON(){
   const tid=tidActual(), mp=(MOTOR.map[tid]||{}); const ans={};
   const ok=clavesDe(D_.TIPO_TASACION,D_.N_FINCA_MEJORAS);   /* solo campos del tipo actual */
   Object.keys(D_).forEach(k=>{ if(!ok.has(k)||/__OTRO$/.test(k)) return; if(/^Q_(ACC_|VEH_RAPIDO)/.test(k)&&D_.Q_PLANTILLA_PRUEBA!=="Nueva (en prueba)") return; const v=valorMotor(k,D_[k]); if(!v) return; if(/^Q_OBRA_[A-Z]+_UNIDAD$/.test(k)){ const b=k.replace(/_UNIDAD$/,""); if(!String(D_[b+"_MED"]||D_[b+"_AREA"]||"").trim()) return; }
-    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z_]+|SM_[A-Z_]+|PORC_SERVICIOS|PLANTILLA_PRUEBA|OBJETIVO_USO_DE_LA_TASACION|PCT_VIAS|PCT_VERDES|OBRAS_PUBLICAS_V|UTILIDAD_PCT|VEH_REG_[A-Z0-9_]+|OBRA_[A-Z_]+|ACC_[A-Z_]+|VEH_RAPIDO_CONFIRMADO)$/.test(k)?k:null); if(id) ans[id]=v; });
+    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z0-9_]+|SM_[A-Z_]+|PORC_SERVICIOS|PLANTILLA_PRUEBA|OBJETIVO_USO_DE_LA_TASACION|PCT_VIAS|PCT_VERDES|OBRAS_PUBLICAS_V|UTILIDAD_PCT|VEH_REG_[A-Z0-9_]+|OBRA_[A-Z_]+|ACC_[A-Z_]+|VEH_RAPIDO_CONFIRMADO)$/.test(k)?k:null); if(id) ans[id]=v; });
   return {form_id:MOTOR.form_id,answers:ans};
 }
 /* Extensión según el tipo real del archivo (no según su nombre): .jfif/.jpe/sin extensión salen como .jpg */
@@ -1392,6 +1442,7 @@ async function exportar(){
   _exportando=true; const nx=document.getElementById("next"); nx.disabled=true; nx.textContent="Guardando…";
   try{
     if(!validarAntesDeGuardar()) return;
+    { const L=resumenVacios(); if(L.length&&!confirm(resumenTexto(L))){ irA(L[0].id); return; } }
     { const inc=ruta().includes("CANVAS")?cvIncompletos():[]; if(inc.length&&!confirm("El croquis "+(inc.length>1?"de los niveles ":"del nivel ")+inc.join(", ")+" no está completo (falta alguna medida) y NO se va a mandar.\n\n¿Guardar el expediente así?")){ irA("CANVAS"); return; } }
     const r=await construirPaquete();
     if(!r.excede) aprRegistrar();
