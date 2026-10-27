@@ -93,7 +93,7 @@ details.rum textarea{margin-top:8px;min-height:110px;font-size:14px}
 .cvmode{display:flex;gap:6px;margin:12px 0 0}
 .cvmode button{flex:1;font:inherit;font-size:14px;min-height:44px;padding:10px 6px;border-radius:10px;border:2px solid var(--borde);background:#fbfcf8;color:var(--carbon);cursor:pointer}
 .cvmode button.on{background:var(--negro);color:var(--verde);border-color:var(--negro);font-weight:bold}
-#estado{position:sticky;top:0;z-index:5;background:#e8eef5;color:#16365c;font-size:12.5px;font-weight:600;text-align:center;padding:4px 10px;border-bottom:1px solid #c9d3df}#estado.nueva{background:#fff3b0;color:#5a4300}#semaforo{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:6px 10px;background:#f4f6f8;border-bottom:1px solid #d9dfe6}#semaforo button{width:22px;height:22px;border-radius:11px;border:2px solid #fff;box-shadow:0 0 0 1px #8a95a3;padding:0;background:#c8cfd8}#semaforo button.v{background:#1f7a4d}#semaforo button.a{background:#e8b800}#semaforo button.r{background:#d33}#semaforo button.act{box-shadow:0 0 0 3px #16365c}.fsuave{color:#b45309;font-size:13.5px;font-weight:bold;margin:6px 0 0}.fsuave[hidden]{display:none}
+#estado{position:sticky;top:0;z-index:5;background:#e8eef5;color:#16365c;font-size:12.5px;font-weight:600;text-align:center;padding:4px 10px;border-bottom:1px solid #c9d3df}#estado.nueva{background:#fff3b0;color:#5a4300}#semaforo{padding:9px 12px 8px;background:var(--card,#fff);border-bottom:1px solid var(--line,#d3d8c9)}#semaforo .sb{display:flex;gap:5px;justify-content:center;flex-wrap:wrap}#semaforo button{position:relative;width:26px;height:10px;border-radius:5px;border:1.5px solid var(--line,#c8cfd8);padding:0;background:transparent;transition:transform .15s}#semaforo button::after{content:"";position:absolute;inset:-10px -3px}#semaforo button.v{border-color:transparent;background:linear-gradient(180deg,#c9e552,#a3c21f)}#semaforo button.a{border-color:transparent;background:linear-gradient(180deg,#f0bb4a,#d99a1c)}#semaforo button.r{border-color:transparent;background:linear-gradient(180deg,#e58b80,#c9564a);opacity:.85}#semaforo button.n{background:var(--line,#c8cfd8);border-color:transparent}#semaforo button.act{transform:scaleY(1.5);box-shadow:0 0 0 2px var(--card,#fff),0 0 0 4px var(--ink,#16191c)}#semaforo .sc{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:9px;font-size:12px;color:var(--muted,#5f685b)}#semaforo .sc b{color:var(--ink,#16191c);font-weight:700}#semaforo .lg{display:flex;gap:9px;white-space:nowrap}#semaforo .lg i{display:inline-block;width:8px;height:8px;border-radius:4px;margin-right:3px;vertical-align:baseline}.fsuave{color:#b45309;font-size:13.5px;font-weight:bold;margin:6px 0 0}.fsuave[hidden]{display:none}
 #net{background:#f5c542;color:#16181a;font-size:13px;font-weight:bold;text-align:center;padding:6px 10px}
 #net[hidden]{display:none}
 .paq{background:#fff;border:1px solid var(--borde);border-radius:12px;padding:12px;margin:10px 0}
@@ -479,7 +479,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-27-z31"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-27-z33"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -962,9 +962,10 @@ function seccionConteo(id){ const sec=SECC[id]; if(!sec) return null;
     let h=""; try{ h=campo(f); }catch(e){ h="x"; } if(!h) continue; tot++; const v=D_[k]; if(v==null||String(v).trim()==="") vac++; }
   return {tot,vac}; }
 function semaforoPintar(){ const e=document.getElementById("semaforo"); if(!e||vista==="cola") return; const R=ruta(); let h="";
-  R.forEach((id,i)=>{ const c=seccionConteo(id); let cl=""; if(c&&c.tot){ cl=c.vac===0?"v":(c.vac===c.tot?"r":"a"); }
-    h+=`<button type="button" class="${cl}${i===paso?" act":""}" data-sem="${i}" aria-label="${esc(SECC[id].t)}" title="${esc(SECC[id].t)}"></button>`; });
-  e.innerHTML=h; e.hidden=false; }
+  R.forEach((id,i)=>{ const c=seccionConteo(id); let cl="n"; if(c&&c.tot){ cl=c.vac===0?"v":(c.vac===c.tot?"r":"a"); }
+    h+=`<button type="button" class="${cl}${i===paso?" act":""}" data-sem="${i}" aria-label="${esc(SECC[R[i]].t)}" title="${esc(SECC[R[i]].t)}"></button>`; });
+  const cu=seccionConteo(R[paso]); const hechos=cu&&cu.tot?(cu.tot-cu.vac)+" de "+cu.tot+" datos":"";
+  e.innerHTML=`<div class="sb">${h}</div><div class="sc"><span><b>${esc(SECC[R[paso]].t)}</b>${hechos?" · "+hechos:""}</span><span class="lg"><span><i style="background:#a3c21f"></i>completa</span><span><i style="background:#d99a1c"></i>a medias</span><span><i style="background:#c9564a"></i>vacía</span></span></div>`; e.hidden=false; }
 function resumenVacios(){ const out=[]; const R=ruta();
   for(const id of R){ const sec=SECC[id]; if(!sec||!sec.f||!sec.f.length) continue; const fal=[];
     for(const f of sec.f){ const k=f[0]; if(/__OTRO$/.test(k)||/^Q_(REV_|ACC_|VEH_RAPIDO)/.test(k)) continue;
