@@ -349,7 +349,7 @@ const SRV_PESO=Object.fromEntries(SRV.map(x=>[x[0],x[2]]));
 const SERVF=[...SRV.map(x=>O(x[0],x[1]+" · vale "+x[2]+"%",["Hay"])),N("Q_PORC_SERVICIOS","Porcentaje de servicios (%)")];
 const EDIF=[T("TIPO_DE_INMUEBLE","Tipo de edificación sobre el solar"),D("AREA_CONSTRUCCION_M2","Área de construcción (m²)"),N("EDAD_MEJORAS","Edad de las mejoras (años)"),T("TIPOLOGIA_CONSTRUCTIVA","Tipología constructiva"),L("DISTRIBUCION_ARQUITECTONICA_AMBIENTES","Distribución de ambientes"),L("CARACTERISTICAS_CONSTRUCTIVAS","Características constructivas observadas")];
 const SECC={
- INICIO:{t:"Qué vas a tasar",f:[O("TIPO_TASACION","¿Qué vas a tasar?",["Solar","Terreno preurbanizado","Solar + Mejora con materiales","Apartamento o local","Finca","Vehículo"]),O("Q_PLANTILLA_PRUEBA","Plantilla del Word",["Actual (probada)","Nueva (en prueba)"])]},
+ INICIO:{t:"Qué vas a tasar",f:[O("TIPO_TASACION","¿Qué vas a tasar?",["Solar","Terreno preurbanizado","Solar + Mejora con materiales","Apartamento o local","Finca","Vehículo"])]},
  PERS:{t:"Solicitante, propietario y dirección",f:HOUSE},
  TER:{t:"Terreno y linderos",f:TER},
  LEGAL:{t:"Datos legales del inmueble",f:LEGAL},
@@ -433,7 +433,7 @@ SECC.VACC={t:"Equipamiento del vehículo",f:[O("Q_ACC_PERFIL","Perfil rápido de
 function accLista(k){ return String(D_[k]||"").split(";").map(x=>x.trim()).filter(Boolean); }
 function accTiene(cod){ const p=D_.Q_ACC_PERFIL||"Personalizado", pno=(ACC_PERFILES[p]||[]).includes(cod.replace(/^ACC_/,"")); if(accLista("Q_ACC_NO_TIENE").includes(cod)) return false; if(accLista("Q_ACC_SI_TIENE").includes(cod)) return true; return !pno; }
 function accHTML(){ const p=D_.Q_ACC_PERFIL||"Personalizado", n=ACC_LISTA.filter(a=>!accTiene(a[0])).length;
-  return `<div class="hint">Todo lo que no toques sale como «Sí tiene», según el perfil elegido. Toca solo lo que el vehículo <b>NO</b> tiene (queda tachado). Al cambiar el perfil se reinician los ajustes de abajo. Solo plantilla «Nueva (en prueba)».</div><div class="accg" id="accg">${ACC_LISTA.map(a=>{const t=accTiene(a[0]); return `<button type="button" class="chip${t?" on":" accno"}" data-acc="${a[0]}">${t?"":"✕ "}${esc(a[1])}</button>`;}).join("")}</div><div class="hint accres">Perfil: ${esc(p)} · No tiene: ${n} de ${ACC_LISTA.length}</div>`; }
+  return `<div class="hint">Todo lo que no toques sale como «Sí tiene», según el perfil elegido. Toca solo lo que el vehículo <b>NO</b> tiene (queda tachado). Al cambiar el perfil se reinician los ajustes de abajo.</div><div class="accg" id="accg">${ACC_LISTA.map(a=>{const t=accTiene(a[0]); return `<button type="button" class="chip${t?" on":" accno"}" data-acc="${a[0]}">${t?"":"✕ "}${esc(a[1])}</button>`;}).join("")}</div><div class="hint accres">Perfil: ${esc(p)} · No tiene: ${n} de ${ACC_LISTA.length}</div>`; }
 function accToggle(cod){ const p=D_.Q_ACC_PERFIL||"Personalizado", pno=(ACC_PERFILES[p]||[]).includes(cod.replace(/^ACC_/,"")); let no=accLista("Q_ACC_NO_TIENE").filter(x=>x!==cod), si=accLista("Q_ACC_SI_TIENE").filter(x=>x!==cod); const tiene=accTiene(cod);
   if(tiene){ if(!pno) no.push(cod); } else { if(pno) si.push(cod); }   /* de «tiene» a «no tiene» y viceversa, solo como excepción al perfil */
   D_.Q_ACC_NO_TIENE=no.join(";"); D_.Q_ACC_SI_TIENE=si.join(";"); save(); }
@@ -482,11 +482,12 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-31-z44"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-10-31-z46"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
 try{D_=JSON.parse(localStorage.getItem("nlc_form")||"{}")}catch(e){}
+D_.Q_PLANTILLA_PRUEBA="Actual (probada)"; /* z46: ya no hay botón «Nueva»; las plantillas mejoradas son las oficiales */
 /* ===== 2026-10-24-z14 · Preguntas enlazadas (Apartamento): al llenar una se llena la otra; sigue editable ===== */
 const _anoRef=()=>{ const m=String(D_.FECHA_DE_INSPECCION||"").match(/(20\d\d)/g); return m&&m.length?Number(m[m.length-1]):new Date().getFullYear(); };
 const LINKS=[
@@ -913,7 +914,7 @@ function campo(f){
   if(f[0]==="Q_ACC_NO_TIENE") return accHTML();
   if(f[0]==="Q_ACC_SI_TIENE") return "";
   if(f[0]==="Q_REV_01_ESTADO"){ return `<div class="hint">Todo arranca en su respuesta normal: «Sí» en funcionamiento, «Bueno» en estados, «No» en indicadores y fugas (lo que no toques se toma así). Toca solo lo que no esté bien: «No» si algo no funciona, «Sí» si el indicador enciende o hay fuga, o un estado distinto de Bueno. «No aplica» está en el reloj y «No tiene» en limpiaparabrisas trasero y techo corredizo, por si el vehículo no lo trae. Volver a tocar lo elegido regresa a lo normal.</div><button type="button" class="cvbtn alt" id="revTodoB">Todo normal (funciona, Bueno, sin alerta ni fuga)</button>`+campo0(f); }
-  if(f[0]==="Q_OBRA_CISTERNA_MED") return `<div class="hint obraAviso" style="border:1.5px solid #b45309;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:600">⚠ Estas obras solo salen en el Word con la plantilla «Nueva (en prueba)». Con «Actual (probada)» no aparecen en el Word.</div>`+campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: cantidad 1)</button></div>`+obraUniHTML(f[0]);
+  if(f[0]==="Q_OBRA_CISTERNA_MED") return `<div class="hint obraAviso" style="border:1.5px solid #b45309;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:600">Estas obras salen en el Word de la plantilla oficial mejorada.</div>`+campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: cantidad 1)</button></div>`+obraUniHTML(f[0]);
   if(/^Q_OBRA_[A-Z]+_(MED|AREA)$/.test(f[0])) return campo0(f)+`<div class="chips"><button type="button" class="chip${D_["PA_"+f[0]]==="1"?" on":""}" data-pa="${f[0]}">P.A. (precio global: cantidad 1)</button></div>`+obraUniHTML(f[0]);
   if(f[0]==="Q_OBRA_OTRA_VALOR") return campo0(f)+`<div class="hint obraRes">${obraResumen()}</div>`;
   if(f[0]==="Q_APT_COMP_FECHA_CONSULTA"||f[0]==="Q_VEH_REG_FECHA_CONSULTA") return `<button type="button" class="cvbtn alt" data-impweb="${f[0]==="Q_APT_COMP_FECHA_CONSULTA"?"APT":"VEH"}" style="margin:6px 0 12px">📥 Importar comparables web (archivo .json)</button><div class="hint">Elige el archivo COMPWEB_… que dejó la sesión de comparables (carpeta Comparables_web). Se llenan solos los comparables; los revisas y corriges aquí.</div>`+campo0(f);
@@ -932,7 +933,7 @@ function campo0(f){
   if(esDist(k)) hint="Escribe la distancia y toca la unidad: Ml (metros lineales) o Km. Ejemplo: 950 Ml o 1.5 Km.";
   let h=`<label for="f_${k}">${esc(l)}${hint?`<button type="button" class="ib" aria-label="Ver ejemplo" title="Ver ejemplo">i</button>`:""}</label>`+(hint?`<div class="hint">${esc(hint)}</div>`:"");
   /* 2026-10-22-z10 (J14): plantilla del Word por caso. Sin elegir = Actual; un toque elige (no se desmarca). */
-  if(k==="Q_PLANTILLA_PRUEBA"){ const cur=v||"Actual (probada)"; return h+`<div class="chips" data-chip="${k}">${o.map(x=>`<button type="button" class="chip${x===cur?" on":""}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div><div class="hint">Si no tocas nada, sale la Actual (la de siempre). «Nueva (en prueba)» es solo para probar: ese Word va a la carpeta _Pruebas y, si la Nueva falla, el motor usa la Actual y te avisa en el correo.</div>`; }
+  if(k==="Q_PLANTILLA_PRUEBA"){ const cur=v||"Actual (probada)"; return h+`<div class="chips" data-chip="${k}">${o.map(x=>`<button type="button" class="chip${x===cur?" on":""}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div><div class="plbox" style="display:block;border:1.5px solid currentColor;border-radius:10px;padding:10px 12px;margin:8px 0;line-height:1.5;font-size:15px"><b>${cur==="Nueva (en prueba)"?"Estás usando la NUEVA (con campos nuevos)":"Estás usando la ACTUAL (sin campos nuevos)"}</b><br><b>Actual (probada):</b> la plantilla de siempre. NO lleva los campos nuevos: ni el equipamiento del vehículo ni las obras con su unidad.<br><b>Nueva (en prueba):</b> la que SÍ lleva los campos nuevos: equipamiento del vehículo, obras con su unidad y lo que se vaya agregando. Es la que se está probando.</div><div class="hint">Si no tocas nada, sale la Actual (la de siempre). «Nueva (en prueba)» es solo para probar: ese Word va a la carpeta _Pruebas y, si la Nueva falla, el motor usa la Actual y te avisa en el correo.</div>`; }
   if(t==="o"){
     let opts=o;
     if(k==="MUNICIPIO"&&D_.PROVINCIA) opts=o.filter(x=>x.endsWith("— "+D_.PROVINCIA));
@@ -987,7 +988,7 @@ function duplicarCaso(){
   const keep={}; Object.keys(D_).forEach(k=>{ if(/^(TIPO_TASACION|N_FINCA_MEJORAS|Q_PLANTILLA_PRUEBA|BANCO|BANCO__OTRO|Q_OBJETIVO_USO_DE_LA_TASACION|TASA_DOLAR_USD|PROVINCIA|MUNICIPIO)$/.test(k)||/^Q_OBRA_.*_UNIDAD$/.test(k)||/^Q_OBRA_.*_UNIDAD_OTRA$/.test(k)) { if(D_[k]!==""&&D_[k]!=null) keep[k]=D_[k]; } });
   try{ localStorage.setItem("nlc_form",JSON.stringify(keep)); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_z7_nom"); }catch(e){}
   fotosBD.limpiar().then(()=>location.reload()); }
-function estadoPintar(){ const e=document.getElementById("estado"); if(!e) return; const nueva=D_.Q_PLANTILLA_PRUEBA==="Nueva (en prueba)"; e.textContent="App "+APP_VER.split("-").pop()+" · Plantilla: "+(nueva?"Nueva (en prueba)":"Actual (probada)")+(_gHora?(_gHora==="error"?" · ⚠ no se pudo guardar en el teléfono":" · ✔ guardado "+_gHora):""); e.className=nueva?"nueva":""; }
+function estadoPintar(){ const e=document.getElementById("estado"); if(!e) return; const nueva=D_.Q_PLANTILLA_PRUEBA==="Nueva (en prueba)"; e.textContent="App "+APP_VER.split("-").pop()+" · Plantilla: "+(nueva?"Nueva (en prueba)":"Oficial")+(_gHora?(_gHora==="error"?" · ⚠ no se pudo guardar en el teléfono":" · ✔ guardado "+_gHora):""); e.className=nueva?"nueva":""; }
 function avisoSuave(k){ const v=D_[k]; if(v==null||String(v).trim()==="") return "";
   if(k==="VEHICULO_KILOMETRAJE"){ const n=Number(numNorm(v,false,true)); if(!isNaN(n)&&n>999999) return "Kilometraje muy alto: ¿está bien escrito?"; }
   if(k==="VEHICULO_ANO"){ const n=Number(numNorm(v,true)); const y=new Date().getFullYear(); if(!isNaN(n)&&(n<1950||n>y+1)) return "Año poco probable: revísalo."; }
@@ -1364,7 +1365,7 @@ const MOTOR={"form_id":"hzybdMXio06RrLU34uyh6fSm4oXi-cJEgKJ2-dH9hEVUQjlTVktZVkda
 function armarJSON(){
   const tid=tidActual(), mp=(MOTOR.map[tid]||{}); const ans={};
   const ok=clavesDe(D_.TIPO_TASACION,D_.N_FINCA_MEJORAS);   /* solo campos del tipo actual */
-  Object.keys(D_).forEach(k=>{ if(!ok.has(k)||/__OTRO$/.test(k)) return; if(/^Q_(ACC_|VEH_RAPIDO)/.test(k)&&D_.Q_PLANTILLA_PRUEBA!=="Nueva (en prueba)") return; const v=valorMotor(k,D_[k]); if(!v) return; if(/^Q_OBRA_[A-Z]+_UNIDAD$/.test(k)){ const b=k.replace(/_UNIDAD$/,""); if(!String(D_[b+"_MED"]||D_[b+"_AREA"]||"").trim()) return; }
+  Object.keys(D_).forEach(k=>{ if(!ok.has(k)||/__OTRO$/.test(k)) return; const v=valorMotor(k,D_[k]); if(!v) return; if(/^Q_OBRA_[A-Z]+_UNIDAD$/.test(k)){ const b=k.replace(/_UNIDAD$/,""); if(!String(D_[b+"_MED"]||D_[b+"_AREA"]||"").trim()) return; }
     const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z0-9_]+|SM_[A-Z_]+|PORC_SERVICIOS|PLANTILLA_PRUEBA|OBJETIVO_USO_DE_LA_TASACION|PCT_VIAS|PCT_VERDES|OBRAS_PUBLICAS_V|UTILIDAD_PCT|VEH_REG_[A-Z0-9_]+|OBRA_[A-Z_]+|ACC_[A-Z_]+|VEH_RAPIDO_CONFIRMADO)$/.test(k)?k:null); if(id) ans[id]=v; });
   { const waDe=(pre)=>{ if(ans[pre+"_WHATSAPP"]) return; const d=String(D_[pre+"_TEL"]||"").replace(/\D/g,""); if(d.length===10) ans[pre+"_WHATSAPP"]="https://wa.me/1"+d; else if(d.length===11&&d[0]==="1") ans[pre+"_WHATSAPP"]="https://wa.me/"+d; };
     if(tid==="APT") for(let n=1;n<=4;n++) waDe("Q_APT_COMP_"+n); else if(clavesDe(D_.TIPO_TASACION,D_.N_FINCA_MEJORAS).has("Q_VEH_REG_COMP_1_WHATSAPP")) for(let n=1;n<=12;n++) waDe("Q_VEH_REG_COMP_"+n); }
