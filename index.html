@@ -203,6 +203,8 @@ input.bad,textarea.bad{border-color:var(--bad);background:var(--badbg)}
 .foto .fn small{font-size:11.5px;color:var(--muted)}
 .foto .cnt{font-family:ui-monospace,Consolas,monospace;font-size:12px;min-width:24px;height:24px;border-radius:999px;background:var(--sel);color:var(--selink);display:grid;place-items:center;padding:0 7px}
 .add{flex:none;width:40px;height:40px;min-height:40px;padding:0;border:1.5px solid var(--accd);border-radius:9px;background:transparent;color:var(--accd);font-size:24px;font-weight:400;line-height:1}
+.foto .bt-all{flex:none;height:34px;border:1.5px solid var(--bad);border-radius:9px;background:transparent;color:var(--bad);font-size:12px;font-weight:700;padding:0 10px;cursor:pointer;white-space:nowrap}
+.foto .bt-all[hidden]{display:none}
 .thumbs{gap:12px;margin-top:0;padding:0 6px 0 0}
 .thumbs:not(:empty){margin-top:8px;padding-top:6px}
 .thumbs img,.pdfchip{width:58px;height:58px;border-color:var(--card);box-shadow:0 0 0 1px var(--line)}
@@ -506,7 +508,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-11-01-z48"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-11-01-z49"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -1099,7 +1101,7 @@ document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closes
 ["dragover","drop"].forEach(ev=>document.addEventListener(ev,e=>{ if(!document.getElementById("cargaCarpeta")) return; const dt=e.dataTransfer; if(!dt||![...(dt.types||[])].includes("Files")) return; e.preventDefault(); if(ev==="drop"){ const card=e.target.closest&&e.target.closest(".foto"); const inp=card&&card.querySelector("input[data-r]"); if(inp){ agregarFotos(inp.dataset.r,[...dt.files].filter(f=>/^image\//.test(f.type)||f.type==="application/pdf")); } else cargarClasificando(dt.files); } }));
 function fotosHTML(){
   return `<button type="button" class="cvbtn alt" id="cargaCarpeta" style="margin-bottom:6px">📁 Cargar carpeta de fotos (todas a la vez)</button><div class="hint">Elige todas las fotos de la carpeta. Si se llaman Entorno (1).jpg, Titulo.pdf, Fachada (2).jpg… cada una va a su grupo. En la computadora también puedes arrastrar las fotos aquí: sobre un grupo (van a ese grupo) o sobre cualquier parte (se clasifican por el nombre).</div>`+Z7.selectorHTML()+`<div class="msg">Cada foto se guarda con el nombre que lee el botón «Cargar carpeta completa» del Word (ej. Entorno (1).jpg, Titulo (1).jpg). No necesitas renombrar nada. Toca una foto para moverla de lugar o pasarla a otro grupo. Para quitar una foto equivocada, toca la × roja de su miniatura.</div>`+
-  rolesActuales().map(([r,n,p,pdf])=>`<div class="foto" data-mej="${Z7.tipoMej(r)}"><div class="fh">${ICO(ICO_FOTO[r]||"doc")}<div class="fn"><b>${esc(n)}</b></div><span class="cnt" id="ct_${r}">0</span><label class="add" title="Agregar ${pdf?"fotos o PDF":"fotos"}" aria-label="Agregar ${esc(n)}">+<input type="file" accept="${pdf?"image/*,application/pdf":"image/*"}" multiple data-r="${r}"></label></div><div class="thumbs" id="th_${r}"></div>${Z7.nombreHTML(r,p)}</div>`).join("");
+  rolesActuales().map(([r,n,p,pdf])=>`<div class="foto" data-mej="${Z7.tipoMej(r)}"><div class="fh">${ICO(ICO_FOTO[r]||"doc")}<div class="fn"><b>${esc(n)}</b></div><span class="cnt" id="ct_${r}">0</span><button type="button" class="bt-all" id="ba_${r}" data-borrar-todas="${r}" hidden aria-label="Borrar todas las fotos de ${esc(n)}" title="Borrar todas las fotos de este grupo">🗑 Borrar todas</button><label class="add" title="Agregar ${pdf?"fotos o PDF":"fotos"}" aria-label="Agregar ${esc(n)}">+<input type="file" accept="${pdf?"image/*,application/pdf":"image/*"}" multiple data-r="${r}"></label></div><div class="thumbs" id="th_${r}"></div>${Z7.nombreHTML(r,p)}</div>`).join("");
 }
 /* ===== 2026-10-27-z29 · franja fija con versión y estado, resumen antes de guardar, avisos suaves ===== */
 document.addEventListener("click",e=>{ const sp=e.target.closest&&e.target.closest("#semaforo button[data-sigpend]"); if(sp){ paso=Number(sp.dataset.sigpend); render(); window.scrollTo(0,0); return; } const b=e.target.closest&&e.target.closest("#semaforo button[data-sem]"); if(!b) return; paso=Number(b.dataset.sem); render(); window.scrollTo(0,0); });
@@ -1360,6 +1362,7 @@ function pintar(r){
   c.querySelectorAll(".th").forEach(el=>{ const q=el.querySelector("[data-q]"), t=el.querySelector("img,.pdfchip"); if(q&&t) t.onclick=()=>abrirMover(r,+q.dataset.q); });   /* z8 */
   c.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>quitarFoto(r,+b.dataset.q));
   const n=document.getElementById("ct_"+r); if(n) n.textContent=arr.length;
+  const bA=document.getElementById("ba_"+r); if(bA) bA.hidden=!arr.length;   /* z49: botón «Borrar todas» solo si hay fotos */
   try{ Z7.vistaNombre(r); }catch(_){}
 }
 async function quitarFoto(r,i){
@@ -1368,6 +1371,15 @@ async function quitarFoto(r,i){
   if(!confirm("¿Quitar la foto «"+nombreFoto(r,i,f)+"»? Las demás de este grupo se renumeran solas.")) return;
   arr.splice(i,1); if(f._id!=null) await fotosBD.borrar(f._id); portadaSync(); pintar(r);
 }
+/* ===== 2026-11-01-z49 · «🗑 Borrar todas»: vacía de una vez las fotos de UN grupo (con confirmación; no toca los otros grupos) ===== */
+async function borrarSeccion(r){
+  if(_procesando){ alert("Espera a que terminen de prepararse las fotos y vuelve a intentarlo."); return; }
+  const arr=fotos[r]||[]; if(!arr.length) return;
+  const x=rolesActuales().find(y=>y[0]===r), nm=x?String(x[1]).replace(/\(.*$/,"").trim():r, n=arr.length;
+  if(!confirm("¿Borrar las "+n+(n>1?" fotos":" foto")+" de «"+nm+"»?\n\nNo se pueden recuperar. Las fotos de los otros grupos no se tocan.")) return;
+  arr.length=0; await fotosBD.borrarRol(r); portadaSync(); pintar(r);
+}
+document.addEventListener("click",e=>{ const b=e.target&&e.target.closest?e.target.closest("[data-borrar-todas]"):null; if(b){ e.preventDefault(); borrarSeccion(b.dataset.borrarTodas); } });
 /* ===== 2026-10-19-z8 · mover fotos de lugar o de grupo (antes de «Guardar expediente») ===== */
 (function(){ try{ const css=document.createElement("style"); css.id="z8css";
 css.textContent=`.th img,.th .pdfchip{cursor:pointer}.th{position:relative}.th.pt img{outline:3px solid #e3a72f;border-radius:8px}.pst{position:absolute;left:2px;bottom:2px;z-index:2;font-size:18px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));pointer-events:none}
