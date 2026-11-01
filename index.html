@@ -482,7 +482,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-10-31-z46"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-11-01-z47"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -988,7 +988,9 @@ function duplicarCaso(){
   const keep={}; Object.keys(D_).forEach(k=>{ if(/^(TIPO_TASACION|N_FINCA_MEJORAS|Q_PLANTILLA_PRUEBA|BANCO|BANCO__OTRO|Q_OBJETIVO_USO_DE_LA_TASACION|TASA_DOLAR_USD|PROVINCIA|MUNICIPIO)$/.test(k)||/^Q_OBRA_.*_UNIDAD$/.test(k)||/^Q_OBRA_.*_UNIDAD_OTRA$/.test(k)) { if(D_[k]!==""&&D_[k]!=null) keep[k]=D_[k]; } });
   try{ localStorage.setItem("nlc_form",JSON.stringify(keep)); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_z7_nom"); }catch(e){}
   fotosBD.limpiar().then(()=>location.reload()); }
-function estadoPintar(){ const e=document.getElementById("estado"); if(!e) return; const nueva=D_.Q_PLANTILLA_PRUEBA==="Nueva (en prueba)"; e.textContent="App "+APP_VER.split("-").pop()+" · Plantilla: "+(nueva?"Nueva (en prueba)":"Oficial")+(_gHora?(_gHora==="error"?" · ⚠ no se pudo guardar en el teléfono":" · ✔ guardado "+_gHora):""); e.className=nueva?"nueva":""; }
+/* 2026-11-01-z47 (EXPERTA-06): aviso en la franja de arriba: el motor llena solo los comparables del banco (hasta 6, máx. 3 km) para este tipo. */
+function bancoAviso(){ const t=D_.TIPO_TASACION; if(!t||t==="Vehículo") return ""; if(/^(Solar|Terreno preurbanizado|Solar \+ Mejora|Solar \+ Mejora con materiales|Apartamento o local|Finca)$/.test(t)) return " · Comparables del banco: se llenan solos (hasta 6, máx. 3 km)"; return ""; }
+function estadoPintar(){ const e=document.getElementById("estado"); if(!e) return; const nueva=D_.Q_PLANTILLA_PRUEBA==="Nueva (en prueba)"; e.textContent="App "+APP_VER.split("-").pop()+" · Plantilla: "+(nueva?"Nueva (en prueba)":"Oficial")+bancoAviso()+(_gHora?(_gHora==="error"?" · ⚠ no se pudo guardar en el teléfono":" · ✔ guardado "+_gHora):""); e.className=nueva?"nueva":""; }
 function avisoSuave(k){ const v=D_[k]; if(v==null||String(v).trim()==="") return "";
   if(k==="VEHICULO_KILOMETRAJE"){ const n=Number(numNorm(v,false,true)); if(!isNaN(n)&&n>999999) return "Kilometraje muy alto: ¿está bien escrito?"; }
   if(k==="VEHICULO_ANO"){ const n=Number(numNorm(v,true)); const y=new Date().getFullYear(); if(!isNaN(n)&&(n<1950||n>y+1)) return "Año poco probable: revísalo."; }
