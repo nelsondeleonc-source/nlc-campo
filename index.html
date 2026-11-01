@@ -284,6 +284,29 @@ details.rum summary{font-size:13.5px;color:var(--ink);min-height:40px}
 html[data-tema="claro"] .notas-cnt.casi{color:#8a5a00}
 .notas-cnt.lleno{color:var(--bad);font-weight:700}
 .notas-av{margin-top:8px;font-size:13px;line-height:1.35;padding:8px 10px;border-radius:9px;background:var(--soft);color:var(--softink);border:1px solid var(--line)}
+/* 2026-11-01-z50 · envío: franja de estado siempre visible y tarjetas de la lista de expedientes */
+#envFr{position:sticky;top:0;z-index:8}
+#envFr[hidden]{display:none}
+#envFr button{display:block;width:100%;margin:0;border:0;border-radius:0;padding:10px 14px 12px;text-align:left;font:inherit;color:#fff;background:#b3261e;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.35);min-height:56px}
+#envFr .envfr-t{display:block;font-size:19px;font-weight:800;line-height:1.15}
+#envFr .envfr-m{display:block;margin-top:3px;font-size:14px;font-weight:600;line-height:1.3}
+#envFr .envfr-bar{display:none;height:9px;margin-top:8px;border-radius:5px;background:rgba(0,0,0,.2);overflow:hidden}
+#envFr .envfr-bar i{display:block;height:100%;width:0;background:#16181a;border-radius:5px;transition:width .3s}
+#envFr.run button{background:#f5c542;color:#16181a}
+#envFr.run .envfr-bar{display:block}
+#envFr.ok button{background:#b4d334;color:#16181a}
+#envFr.indet .envfr-bar i{width:35%;animation:envIndet 1.3s ease-in-out infinite}
+@keyframes envIndet{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+@media (prefers-reduced-motion:reduce){#envFr.indet .envfr-bar i{animation:none;width:100%;opacity:.55}}
+.paq.sin{border:2px solid #b3261e}
+.est.bad{background:#b3261e;color:#fff;font-weight:700}
+.est.dud{background:#f5c542;color:#15181b}
+.paq .bt button.prim{background:var(--sel);color:var(--selink);border-color:var(--sel)}
+.envdet{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.35}
+details.envb{margin:12px 0;border:1.5px solid var(--line);border-radius:10px;padding:4px 10px;background:var(--field)}
+details.envb summary{font-weight:700;font-size:14px;cursor:pointer;color:var(--ink);min-height:44px;display:flex;align-items:center}
+details.envb .msg{margin-top:4px}
+#envDiag{white-space:pre-line;font-size:13px;color:var(--ink);margin:6px 0;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -508,7 +531,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-11-01-z49"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-11-01-z50"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -1152,7 +1175,7 @@ function render(){
   const cuerpo=R[paso]==="FOTOS"?fotosHTML():R[paso]==="CANVAS"?canvasHTML():(R[paso]==="REV"?`<div class="msg">Toca el estado de cada renglón. Lo que dejes sin marcar no se envía y lo completas en el Word. Volver a tocar un estado lo quita.</div>`:"")+`<div class="card">${s.f.map(campo).join("")}</div>`;
   document.getElementById("app").innerHTML=`<div class="paso">Paso ${paso+1} de ${R.length}</div><h2>${s.t}</h2>`+cuerpo+(R[paso]==="FOTOS"||R[paso]==="INICIO"&&hayDatos()?`<button type="button" class="cvbtn alt" id="borrB" style="margin-top:14px">💾 Guardar borrador para seguir en otro aparato</button>`:"")+(R[paso]==="FOTOS"?`<div class="msg">Al tocar «Guardar expediente», todo queda dentro del teléfono (aunque no tengas internet). Después lo guardas en Descargas y lo subes a OneDrive (carpeta Recepcion).</div>`:"")+(R[paso]==="INICIO"?`<div id="instalarHueco"></div><button type="button" class="cvbtn alt" id="abrirExp" style="margin-top:14px">📂 Abrir expediente o borrador (.zip)</button><input type="file" id="abrirIn" accept=".zip,application/zip,application/x-zip-compressed" hidden><div class="gpsr" id="abrirMsg"></div><button type="button" class="cvbtn alt" id="dupExp" style="margin-top:14px">📋 Empezar caso nuevo copiando este (zona, plantilla y obras)</button><button type="button" class="nuevo" id="nuevoExp">🗑 Empezar expediente nuevo (borra todo lo guardado)</button>`:"");
   if(R[paso]==="INICIO") aprBoton();
-  if(R[paso]==="INICIO") cola.listar().then(L=>{ if(!L.length||vista==="cola"||ruta()[paso]!=="INICIO"||document.getElementById("colaB")) return; const b=document.createElement("button"); b.type="button"; b.id="colaB"; b.className="cvbtn alt"; b.style.marginTop="14px"; b.textContent="📦 Expedientes guardados en el teléfono ("+L.length+")"; b.onclick=()=>{vista="cola";ponerTrampa();render();}; document.getElementById("app").appendChild(b); });
+  if(R[paso]==="INICIO") cola.listar().then(L=>{ if(!L.length||vista==="cola"||ruta()[paso]!=="INICIO"||document.getElementById("colaB")) return; const b=document.createElement("button"); b.type="button"; b.id="colaB"; b.className="cvbtn alt"; b.style.marginTop="14px"; b.textContent="📦 Expedientes guardados en el teléfono ("+L.length+")"+(L.some(p=>p.estado==="pendiente")?" · ⚠ HAY SIN ENVIAR":""); b.onclick=()=>{vista="cola";ponerTrampa();render();}; document.getElementById("app").appendChild(b); });
   const ab=document.getElementById("abrirExp"), ai=document.getElementById("abrirIn"); if(ab&&ai){ ab.onclick=()=>{ai.value="";ai.click();}; ai.onchange=()=>abrirExpediente(ai.files&&ai.files[0]); }
   const bb=document.getElementById("borrB"); if(bb) bb.onclick=guardarBorrador;
   const db=document.getElementById("dupExp"); if(db) db.onclick=duplicarCaso;
@@ -1650,8 +1673,8 @@ async function exportar(){
       return;
     }
     marcarListo(); vista="cola"; ponerTrampa();
-    await renderCola("✔ Expediente guardado en el teléfono. Está seguro aunque no tengas internet. Si hay internet se envía solo; si no, toca «⬇ Guardar en el teléfono» para subirlo a OneDrive."+(r.aviso?" "+r.aviso:""));
-    enviarPendientes().then(n=>{ if(n&&vista==="cola") renderCola("✔ Enviado al sistema. Lo está revisando; si algo no cuadra, te avisará."); }).catch(()=>{});
+    await renderCola("✔ Expediente guardado en el teléfono. Está seguro aunque no tengas internet. TODAVÍA NO SE HA ENVIADO: la app lo envía sola (mira la franja de arriba) y, si no hay señal, lo manda apenas vuelva."+(r.aviso?" "+r.aviso:""));
+    enviarPendientes({ahora:true}).catch(()=>{});   /* z50: el resultado (bien o mal) se ve en la franja de arriba; si ya hay un envío en curso, el nuevo sale justo después */
   }catch(e){
     alert("No se pudo armar el paquete ("+((e&&e.message)||e)+"). Tus datos siguen guardados; inténtalo de nuevo.");
   }finally{
@@ -1682,57 +1705,338 @@ const cola={
   async listar(){const r=await this._tx(["m"],"readonly",(t,o)=>{const q=t.objectStore("m").getAll(); q.onsuccess=()=>o(q.result||[]);}); return (r||[]).sort((a,b)=>b.id-a.id);},
   leer(id){return this._tx(["p"],"readonly",(t,o)=>{const q=t.objectStore("p").get(id); q.onsuccess=()=>o(q.result||null);});},
   marcar(id,estado){return this._tx(["m"],"readwrite",t=>{const st=t.objectStore("m"), q=st.get(id); q.onsuccess=()=>{const v=q.result; if(v){v.estado=estado; st.put(v);}};});},
+  actualizar(id,parche){return this._tx(["m"],"readwrite",t=>{const st=t.objectStore("m"), q=st.get(id); q.onsuccess=()=>{const v=q.result; if(v){Object.assign(v,parche); st.put(v);}};});},   /* z50: anota intentos, motivo del fallo, marcas de bajado/compartido… sin cambiar el estado */
   borrar(id){return this._tx(["p","m"],"readwrite",t=>{t.objectStore("p").delete(id); t.objectStore("m").delete(id);});}
 };
-let _enviando=false;
+/* ===== 2026-11-01-z50 · ENVÍO AUTOMÁTICO CON REINTENTOS Y ESTADO SIEMPRE VISIBLE =====
+   Por qué un expediente podía quedar «En Descargas · falta subirlo a OneDrive» sin haberse enviado (z49):
+   1) «Guardar en el teléfono» y «Compartir» cambiaban su estado a «descargado»/«compartido». El envío (el automático, el de al abrir,
+      el de al volver internet y el botón «Enviar ahora») solo miraba los «pendiente»: desde ese toque no se volvía a intentar jamás
+      y «Enviar ahora» no hacía nada, sin avisar.
+   2) Si el primer intento fallaba (sin señal, señal lenta, sistema ocupado) el motivo quedaba en una variable que casi nunca se mostraba.
+   Ahora: el expediente sigue «pendiente» hasta que el sistema confirma que lo recibió; bajar o compartir solo anotan una marca; cada
+   intento y su motivo quedan guardados y se ven en la franja de arriba (en cualquier pantalla); se reintenta solo (espera creciente,
+   al volver internet, al volver a la app, al abrirla); antes de subir los ~10 MB se hace una prueba corta; un solo envío a la vez aunque
+   haya dos ventanas (Web Locks); y el mismo contenido nunca se manda dos veces (si ya llegó, el sistema contesta YA_RECIBIDO). */
+const ENV={pingMs:20000,upMinMs:180000,upMaxMs:720000,upBytesSeg:30720,pasos:[5000,20000,60000,180000,300000,600000],okMs:20000,pingVigenteMs:60000};
+const envS={activo:false,id:null,fase:"",pct:0,tFase:0,n:0,de:0,otra:false,okHasta:0,okTxt:"",timer:null,tick:null,k:0,pingOk:0,ult:0,wl:null,tam:0,pm:{},diag:""};
+let envCache=[];
 async function sha256Hex(buf){ const h=await crypto.subtle.digest("SHA-256",buf); return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,"0")).join(""); }
-function aB64(buf){ const u=new Uint8Array(buf); let s=""; for(let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
-let _envMsg="";
-async function enviarPendientes(){
-  if(!ENDPOINT||!navigator.onLine||_enviando) return 0; _enviando=true; let n=0; _envMsg="";
-  try{ for(const m of (await cola.listar()).filter(x=>x.estado==="pendiente").reverse()){
-    const p=await cola.leer(m.id); if(!p) continue;
-    if(p.blob.size>ENVIO_MAX){ _envMsg="Este expediente pesa "+Math.round(p.blob.size/1048576)+" MB y es demasiado grande para enviarlo solo: toca «⬇ Guardar en el teléfono» y súbelo con la app OneDrive."; continue; }
-    try{
-      const buf=await p.blob.arrayBuffer();
-      const cuerpo=JSON.stringify({v:1,k:ENVIO_CLAVE,nombre:p.nombre,sha256:await sha256Hex(buf),zip_b64:aB64(buf)});
-      const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),180000);   /* si el servidor no contesta en 3 min, se corta y el expediente sigue guardado */
-      let r,txt; try{ r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:cuerpo,redirect:"follow",signal:ctl.signal}); txt=await r.text(); } finally{ clearTimeout(to); }
-      let j=null; try{ j=JSON.parse(txt); }catch(e2){ j=null; }
-      if(j&&j.ok&&(j.estado==="RECIBIDO"||j.estado==="YA_RECIBIDO")){ await cola.marcar(p.id,"enviado"); n++; }
-      else { _envMsg=(j&&j.error==="envio_apagado")?"":(j?"No se pudo enviar solo ("+(j.error||"respuesta rara")+"). El expediente sigue guardado en el teléfono: reintenta o usa «⬇ Guardar en el teléfono».":"El servidor devolvió una respuesta que no se entiende (puede estar ocupado). El expediente sigue guardado: reintenta en unos minutos."); break; }
-    }catch(e){ _envMsg=(e&&e.name==="AbortError")?"El envío tardó demasiado y se canceló. El expediente sigue guardado en el teléfono: reintenta con mejor señal.":"No se pudo enviar ahora (sin señal o conexión inestable). El expediente sigue guardado en el teléfono y se reintenta solo al volver la conexión."; break; }
-  } }finally{ _enviando=false; }
+const envHora=t=>{ try{ return new Date(t).toLocaleTimeString("es-DO",{hour:"numeric",minute:"2-digit",hour12:true}); }catch(e){ return ""; } };
+const envDur=ms=>{ const s=Math.max(0,Math.round(ms/1000)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
+const envTam=b=>b>=1048576?(b/1048576).toFixed(1)+" MB":Math.max(1,Math.round((b||0)/1024))+" KB";
+/* Motivos en español sencillo: [texto, 1 = reintentar no sirve (hay que subirlo por OneDrive o corregir algo)] */
+const ENV_MOT={
+  sin_internet:["Sin internet en el teléfono. Se enviará solo apenas vuelva la señal.",0],
+  red:["No se pudo llegar al sistema (señal muy débil o sin datos). Se reintenta solo.",0],
+  tiempo:["El sistema no contestó a tiempo (señal lenta). Se reintenta solo.",0],
+  respuesta:["El sistema contestó algo que la app no entiende (puede estar ocupado). Se reintenta solo.",0],
+  http_5xx:["Google (el sistema) tuvo un fallo temporal. Se reintenta solo.",0],
+  http_403:["El sistema no dejó entrar a la app (falta un permiso). Avisa a soporte; mientras tanto súbelo por OneDrive.",0],
+  http_404:["La dirección del sistema ya no existe. Avisa a soporte; mientras tanto súbelo por OneDrive.",0],
+  sin_receptor:["El sistema todavía no tiene encendido el receptor de envíos. Avisa a soporte; mientras tanto súbelo por OneDrive.",0],
+  envio_apagado:["El envío automático está APAGADO en el sistema. Avisa a soporte; mientras tanto súbelo por OneDrive.",0],
+  envio_sin_configurar:["Al sistema le falta la clave de envío. Avisa a soporte; mientras tanto súbelo por OneDrive.",0],
+  clave_incorrecta:["La clave de esta versión de la app no coincide con la del sistema (la app se publicó mal). Avisa a soporte; mientras tanto súbelo por OneDrive.",0],
+  sin_clave:["Esta copia de la app no trae la clave de envío. Avisa a soporte; mientras tanto súbelo por OneDrive.",0],
+  demasiados_envios:["Ya se mandaron muchos expedientes en la última hora (el sistema permite 30). Se reintenta más tarde.",0],
+  sha256_no_coincide:["El expediente llegó dañado al sistema (se cortó la señal a medias). Se reintenta solo.",0],
+  error_interno:["Falló algo dentro del sistema (OneDrive o Google ocupados). Se reintenta solo.",0],
+  grande:["Este expediente pesa demasiado para enviarlo solo (el máximo es unos 30 MB). Súbelo por OneDrive y luego toca «Ya lo subí a mano».",1],
+  formato:["El sistema no aceptó el formato del paquete. Súbelo por OneDrive y avisa a soporte.",1],
+  memoria:["El teléfono se quedó sin memoria al preparar el envío. Cierra otras apps y toca aquí otra vez.",0],
+  sin_crypto:["Este navegador no puede preparar el envío. Abre la app desde su enlace https en Chrome.",1],
+  lectura:["No se pudo leer el expediente guardado en el teléfono. No lo borres: avisa a soporte.",1],
+  app:["La app tuvo un fallo inesperado al enviar. Se reintenta solo; si se repite, avisa a soporte.",0]
+};
+function envMotivo(code){
+  if(ENV_MOT[code]) return {txt:ENV_MOT[code][0],fatal:!!ENV_MOT[code][1]};
+  if(/^(cuerpo_invalido|zip_demasiado_grande)$/.test(code)) return {txt:ENV_MOT.grande[0],fatal:true};
+  if(/^(nombre_invalido|sha256_invalido|zip_invalido|no_es_zip|json_invalido|version_no_soportada)$/.test(code)) return {txt:ENV_MOT.formato[0]+" (código: "+code+")",fatal:true};
+  return {txt:"El sistema contestó «"+code+"». Se reintenta solo; si se repite, avisa a soporte.",fatal:false};
+}
+/* Lee lo que contestó el sistema: {ok, code, j}. Una página HTML de Google (cuota, receptor sin publicar…) cuenta como «respuesta rara». */
+function envClasificar(r,txt){
+  let j=null; try{ j=JSON.parse(txt); }catch(e){ j=null; }
+  if(j&&typeof j==="object"){
+    if(j.ok&&(j.estado==="RECIBIDO"||j.estado==="YA_RECIBIDO")) return {ok:true,code:j.estado,j};
+    return {ok:false,code:String(j.error||"respuesta"),j};
+  }
+  if(/doPost|Script function not found/i.test(txt||"")) return {ok:false,code:"sin_receptor"};
+  const s=r&&r.status;
+  return {ok:false,code:s>=500?"http_5xx":(s===401||s===403)?"http_403":s===404?"http_404":"respuesta"};
+}
+/* Prueba corta (unos 100 bytes, no guarda nada en el sistema): con un nombre vacío el receptor contesta «nombre_invalido» cuando está
+   encendido y la clave es buena; si está apagado o la clave no coincide lo dice antes. Así se detecta en 1-2 s, sin subir 10 MB. */
+const ENV_BLOQUEA=/^(envio_apagado|envio_sin_configurar|clave_incorrecta|version_no_soportada|error_interno|sin_receptor|respuesta|http_5xx|http_403|http_404)$/;
+async function envPing(){
+  const ctl=new AbortController(), t0=Date.now(), to=setTimeout(()=>ctl.abort(),ENV.pingMs);
+  try{
+    const r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({v:1,k:ENVIO_CLAVE,nombre:"",sha256:"",zip_b64:""}),redirect:"follow",signal:ctl.signal});
+    const c=envClasificar(r,await r.text());
+    return {listo:c.ok||!ENV_BLOQUEA.test(c.code),code:c.code,ms:Date.now()-t0};
+  }catch(e){ return {listo:false,code:(e&&e.name==="AbortError")?"tiempo":"red",ms:Date.now()-t0}; }
+  finally{ clearTimeout(to); }
+}
+/* Arma el cuerpo del envío por trozos (sin crear un texto de 10-40 MB de una vez): menos memoria y la pantalla no se congela. */
+async function envPreparar(blob,nombre,cambia){
+  const buf=await blob.arrayBuffer(), sha=await sha256Hex(buf), u=new Uint8Array(buf);
+  const partes=['{"v":1,"k":'+JSON.stringify(ENVIO_CLAVE)+',"nombre":'+JSON.stringify(nombre)+',"sha256":"'+sha+'","zip_b64":"'];
+  const TR=49152;   /* múltiplo de 3: cada trozo da base64 sin relleno y su unión es el base64 completo */
+  for(let i=0,k=0;i<u.length;i+=TR,k++){
+    const fin=Math.min(i+TR,u.length); let s="";
+    for(let j=i;j<fin;j+=0x4000) s+=String.fromCharCode.apply(null,u.subarray(j,Math.min(j+0x4000,fin)));
+    partes.push(btoa(s));
+    if(k%48===47){ cambia(Math.round(fin/u.length*100)); await new Promise(r=>setTimeout(r,0)); }
+  }
+  partes.push('"}'); cambia(100);
+  return {cuerpo:new Blob(partes,{type:"text/plain;charset=utf-8"}),sha};
+}
+const envProx=m=>Math.max(m.prox||0,envS.pm[m.id]||0);   /* la espera también se recuerda en memoria por si el teléfono no deja escribir */
+function envEspera(n,code){
+  let b=ENV.pasos[Math.min(n,ENV.pasos.length-1)];
+  if(/^(envio_apagado|envio_sin_configurar|clave_incorrecta|sin_clave|sin_receptor|http_403|http_404)$/.test(code)) b=Math.max(b,300000);   /* hace falta que alguien arregle algo: no tiene caso insistir cada pocos segundos */
+  return Math.round(b*(0.85+Math.random()*0.3));
+}
+function envLog(o){ try{ const a=JSON.parse(localStorage.getItem("nlc_env_log")||"[]"); a.push(Object.assign({t:Date.now(),on:navigator.onLine,vis:document.visibilityState,net:(navigator.connection&&navigator.connection.effectiveType)||""},o)); localStorage.setItem("nlc_env_log",JSON.stringify(a.slice(-40))); }catch(e){} }
+/* Un intento fallido: guarda el motivo y cuándo se volverá a intentar. «glob» = vale para todos los pendientes (sin internet, sistema apagado…). */
+async function envFalla(m,code,glob,det){
+  const mot=envMotivo(code), ahora=Date.now(), sinIntento=code==="sin_internet", n=m.intentos||0;
+  const prox=mot.fatal?0:ahora+(sinIntento?30000:envEspera(n,code));
+  const patch={err:code,ult:ahora,prox,fatal:mot.fatal?APP_VER:""}; if(!sinIntento) patch.intentos=n+1;
+  envS.pm[m.id]=prox;
+  await cola.actualizar(m.id,patch);
+  if(glob) for(const x of envCache){ if(x.id!==m.id&&x.estado==="pendiente"){ envS.pm[x.id]=prox; await cola.actualizar(x.id,{err:code,ult:ahora,prox}); } }
+  envLog(Object.assign({id:m.id,r:"fallo",c:code,b:m.tam||0},det||{}));
+  return {ok:false,code,global:!!glob};
+}
+function envFase(f,pct){ if(envS.fase!==f) envS.tFase=Date.now(); envS.fase=f; envS.pct=pct||0; envPintar(); }
+async function envUno(m){
+  envS.id=m.id; envS.tam=m.tam||0;
+  if(ENVIO_CLAVE.length<24) return envFalla(m,"sin_clave",true);
+  if(navigator.onLine===false) return envFalla(m,"sin_internet",true);
+  let p=null; try{ p=await cola.leer(m.id); }catch(e){ p=null; }
+  if(!p||!p.blob) return envFalla(m,"lectura",false);
+  if(p.blob.size>ENVIO_MAX) return envFalla(m,"grande",false);
+  const t0=Date.now();
+  if(envS.pingOk<Date.now()){
+    envFase("probando");
+    const pg=await envPing();
+    if(!pg.listo) return envFalla(m,pg.code,true,{ms:pg.ms,ping:1});
+    envS.pingOk=Date.now()+ENV.pingVigenteMs;
+  }
+  envFase("preparando",0);
+  let prep;
+  try{ prep=await envPreparar(p.blob,p.nombre,pct=>envFase("preparando",pct)); }
+  catch(e){ return envFalla(m,(typeof crypto==="undefined"||!crypto.subtle)?"sin_crypto":"memoria",false,{msg:String((e&&e.message)||e)}); }
+  envFase("subiendo");
+  /* tiempo máximo: 3 min como mínimo; más si el paquete es grande (se supone que la señal sube al menos ~30 KB/s) */
+  const limite=Math.min(ENV.upMaxMs,Math.max(ENV.upMinMs,60000+prep.cuerpo.size/ENV.upBytesSeg*1000));
+  const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),limite);
+  let c;
+  try{
+    const r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:prep.cuerpo,redirect:"follow",signal:ctl.signal});
+    c=envClasificar(r,await r.text());
+  }catch(e){ clearTimeout(to); return envFalla(m,(e&&e.name==="AbortError")?"tiempo":"red",false,{ms:Date.now()-t0}); }
+  clearTimeout(to);
+  if(c.ok){
+    await cola.actualizar(m.id,{estado:"enviado",enviadoEn:Date.now(),archivo:(c.j&&c.j.archivo)||"",ya:c.code==="YA_RECIBIDO",sha:prep.sha,err:"",prox:0,fatal:"",intentos:(m.intentos||0)+1,ult:Date.now()});
+    delete envS.pm[m.id]; envS.okHasta=Date.now()+ENV.okMs; envS.okTxt=m.nombre;
+    envLog({id:m.id,r:"ok",c:c.code,ms:Date.now()-t0,b:p.blob.size});
+    return {ok:true};
+  }
+  return envFalla(m,c.code,false,{ms:Date.now()-t0});
+}
+async function envCorrer(o){
+  envCache=await cola.listar();
+  let lista=envCache.filter(m=>o.ids?o.ids.includes(m.id)&&m.estado!=="enviado"&&m.estado!=="manual":m.estado==="pendiente").sort((a,b)=>a.id-b.id);
+  if(!o.ids) lista=lista.filter(m=>(o.ahora||Date.now()>=envProx(m))&&(o.forzar||m.fatal!==APP_VER));
+  envS.de=lista.length; envS.n=0; let enviados=0;
+  for(const m of lista){
+    envS.n++;
+    let r; try{ r=await envUno(m); }catch(e){ r=await envFalla(m,"app",false,{msg:String((e&&e.message)||e)}); }
+    if(r.ok) enviados++; else if(r.global) break;
+  }
+  return enviados;
+}
+async function envWakeOn(){ try{ if(!envS.wl&&navigator.wakeLock&&document.visibilityState==="visible"){ const w=await navigator.wakeLock.request("screen"); envS.wl=w; w.addEventListener("release",()=>{ if(envS.wl===w) envS.wl=null; }); } }catch(e){ envS.wl=null; } }
+function envWakeOff(){ try{ if(envS.wl){ const w=envS.wl; envS.wl=null; w.release(); } }catch(e){} }
+/* Envía los expedientes pendientes (el más viejo primero). Devuelve cuántos llegaron al sistema.
+   o.ahora = ignora la espera de reintento · o.forzar = también reintenta los que no tenían arreglo · o.ids = solo esos (botón «Enviar ahora»). */
+async function enviarPendientes(o){
+  o=o||{};
+  if(!ENDPOINT||envS.activo) return 0;
+  envS.activo=true; envS.ult=Date.now(); envWakeOn(); let n=0;
+  try{
+    envUI();
+    const correr=async()=>{ try{ return await envCorrer(o); }catch(e){ envLog({r:"fallo",c:"app",msg:String((e&&e.message)||e)}); return 0; } };
+    let hecho=false;
+    if(navigator.locks&&navigator.locks.request){
+      try{ const r=await navigator.locks.request("nlc-envio",{ifAvailable:true},async lock=>{ if(!lock){ envS.otra=true; return -1; } envS.otra=false; return correr(); }); n=r<0?0:r; hecho=true; }
+      catch(e){ hecho=false; }
+    }
+    if(!hecho) n=await correr();
+  }finally{
+    envS.activo=false; envS.id=null; envS.fase=""; envS.ult=Date.now(); envWakeOff();
+    await envUI();
+    if(vista==="cola") renderCola(n>0?"✔ Enviado al sistema. Lo está revisando; si algo no cuadra, te avisará.":undefined);
+  }
   return n;
 }
-const EST_TXT={pendiente:"Pendiente",descargado:"En Descargas · falta subirlo a OneDrive",compartido:"Compartido (comprueba en OneDrive)",enviado:"Enviado ✓ (el sistema lo está revisando)"};
+/* ----- franja de estado (siempre visible, en cualquier pantalla) ----- */
+function envPintar(){
+  const fr=document.getElementById("envFr"); if(!fr) return;
+  const bt=fr.firstElementChild, t=bt.querySelector(".envfr-t"), m=bt.querySelector(".envfr-m"), bi=bt.querySelector(".envfr-bar i");
+  const ahora=Date.now(), pend=envCache.filter(x=>x.estado==="pendiente").sort((a,b)=>a.id-b.id);
+  const poner=(cls,tit,msg,pct)=>{ fr.hidden=false; fr.className=cls; t.textContent=tit; m.textContent=msg; bi.style.width=pct==null?"":pct+"%"; envTick(true); };
+  if(!pend.length){
+    if(envS.okHasta>ahora) poner("ok","✔ ENVIADO — el sistema ya lo recibió",(envS.okTxt?envS.okTxt+". ":"")+"Lo está revisando; si algo no cuadra, te avisará.",null);
+    else { fr.hidden=true; envTick(false); }
+    return;
+  }
+  const n=pend.length, uno=pend[0];
+  if(envS.activo&&envS.fase){
+    const f=envS.fase, ex=ahora-envS.tFase; let msg, pct=null, indet=true;
+    if(f==="probando") msg="Comprobando la conexión con el sistema…";
+    else if(f==="preparando"){ msg="Preparando el expediente para enviarlo… "+envS.pct+" %"; pct=envS.pct; indet=false; }
+    else msg="Subiendo "+envTam(envS.tam)+" al sistema… "+envDur(ex)+" · no cierres la app"+(ex>60000?" · la señal está lenta, puede tardar varios minutos":"");
+    if(envS.de>1) msg="Expediente "+envS.n+" de "+envS.de+" · "+msg;
+    poner("run"+(indet?" indet":""),(n>1?n+" EXPEDIENTES SIN ENVIAR":"NO ENVIADO TODAVÍA")+" · enviando…",msg,pct);
+    return;
+  }
+  const mot=uno.err?envMotivo(uno.err):null; let msg;
+  if(envS.otra) msg="Se está enviando desde otra ventana de la app. Si no avanza, ciérrala.";
+  else if(mot){ msg=mot.txt; if(!mot.fatal){ const falta=envProx(uno)-ahora; msg+=falta>1000?" Reintento automático en "+envDur(falta)+".":" Reintentando…"; } }
+  else msg="Se enviará en unos segundos…";
+  if(n>1) msg+=" ("+n+" expedientes sin enviar)";
+  poner("err","NO ENVIADO — toca aquí para enviar",msg,null);
+}
+function envTick(on){
+  if(on){ if(!envS.tick) envS.tick=setInterval(()=>{ envPintar(); if(++envS.k%5===0&&!envS.activo) envUI(); },1000); }
+  else if(envS.tick){ clearInterval(envS.tick); envS.tick=null; }
+}
+async function envUI(){ try{ envCache=await cola.listar(); }catch(e){} envPintar(); envProgramar(); }
+/* Programa el próximo intento solo (el más cercano de los pendientes). Los que no tienen arreglo (fatal) esperan a que alguien los toque. */
+function envProgramar(){
+  clearTimeout(envS.timer); envS.timer=null;
+  if(!ENDPOINT||envS.activo) return;
+  const P=envCache.filter(x=>x.estado==="pendiente"&&x.fatal!==APP_VER); if(!P.length) return;
+  const d=Math.max(envS.otra?10000:1500,Math.min(...P.map(envProx))-Date.now());
+  envS.timer=setTimeout(()=>{ envS.timer=null; enviarPendientes().catch(()=>{}); },Math.min(d,2147000000));
+}
+/* Internet que vuelve, app que vuelve a verse o que se abre: se intenta ya, sin esperar el turno. */
+function envDisparar(motivo){
+  if(envS.activo||!ENDPOINT) return;
+  const hace=Date.now()-envS.ult;
+  if(motivo!=="online"&&(hace<3000||(motivo==="visible"&&hace<30000))) return;   /* al volver internet se intenta SIEMPRE, sin esperar */
+  enviarPendientes({ahora:true}).catch(()=>{});
+}
+function envToque(){
+  if(vista!=="cola"){ vista="cola"; ponerTrampa(); render(); scrollTo(0,0); } else renderCola();
+  if(!envS.activo) enviarPendientes({ahora:true,forzar:true}).catch(()=>{});
+}
+/* ----- diagnóstico e informe (para saber qué pasó sin adivinar) ----- */
+async function envProbar(){
+  const box=document.getElementById("envDiag"); if(!box) return;
+  box.textContent="Probando… (hasta 20 segundos)";
+  const L=["App "+APP_VER.split("-").pop()+" · "+envHora(Date.now()),"Internet del teléfono: "+(navigator.onLine?"sí":"NO")];
+  const cn=navigator.connection; if(cn&&cn.effectiveType) L.push("Tipo de señal: "+cn.effectiveType+(cn.downlink?" (bajada ~"+cn.downlink+" Mbps)":""));
+  L.push("La app trae la clave de envío: "+(ENVIO_CLAVE.length>=24?"sí":"NO"));
+  try{ const e=await navigator.storage.estimate(); if(e&&e.quota) L.push("Espacio libre en el teléfono para la app: "+Math.round((e.quota-(e.usage||0))/1048576)+" MB"); }catch(x){}
+  if(navigator.onLine===false) L.push("Sistema: no se probó (sin internet).");
+  else { const pg=await envPing(); L.push("Sistema: "+(pg.listo?"contesta y acepta envíos ("+(pg.ms/1000).toFixed(1)+" s)":envMotivo(pg.code).txt+" (código: "+pg.code+")")); }
+  envS.diag=L.join("\n"); box.textContent=envS.diag;
+}
+function envInforme(){
+  let a=[]; try{ a=JSON.parse(localStorage.getItem("nlc_env_log")||"[]"); }catch(e){}
+  const f=t=>new Date(t).toLocaleString("es-DO",{day:"2-digit",month:"2-digit",hour:"numeric",minute:"2-digit",hour12:true});
+  const L=envCache, sin=L.filter(x=>x.estado==="pendiente").length;
+  return ["Informe de envíos · app "+APP_VER+" · "+f(Date.now()),"Expedientes en el teléfono: "+L.length+" ("+sin+" sin enviar)"]
+    .concat(L.slice(0,10).map(m=>"· #"+m.id+" "+m.nombre+" · "+envTam(m.tam)+" · "+m.estado+(m.err?" · último fallo: "+m.err:"")+(m.intentos?" · intentos: "+m.intentos:"")))
+    .concat(["Últimos intentos:"])
+    .concat(a.slice(-15).map(x=>"· "+f(x.t)+" · #"+(x.id||"-")+" · "+(x.r==="ok"?"OK "+x.c:"FALLÓ "+x.c)+(x.ms!=null?" · "+(x.ms/1000).toFixed(1)+" s":"")+(x.b?" · "+envTam(x.b):"")+" · internet "+(x.on?"sí":"no")+" · señal "+(x.net||"?")+" · pantalla "+(x.vis==="visible"?"visible":"oculta"))).join("\n");
+}
+async function envCopiar(box){
+  const txt=envInforme();
+  try{ await navigator.clipboard.writeText(txt); box.textContent="📋 Informe copiado. Pégalo en el chat de soporte.\n\n"+txt; return; }catch(e){}
+  try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.cssText="position:fixed;opacity:0"; document.body.appendChild(ta); ta.select(); const ok=document.execCommand("copy"); ta.remove(); if(ok){ box.textContent="📋 Informe copiado. Pégalo en el chat de soporte.\n\n"+txt; return; } }catch(e){}
+  box.textContent="No se pudo copiar solo. Mantén pulsado este texto, selecciónalo y cópialo:\n\n"+txt;
+}
+/* Estado de cada tarjeta de la lista */
+function envEstadoTxt(p){ const r=envEstadoTxt0(p); if(r.det) r.det=r.det.replace(/\.\./g,"."); return r; }   /* «p. m.» + punto final = dos puntos: se arregla aquí */
+function envEstadoTxt0(p){
+  const E=p.estado;
+  if(E==="enviado") return {txt:"Enviado ✓ (el sistema lo está revisando)",cls:"ok",det:(p.enviadoEn?"Llegó al sistema a las "+envHora(p.enviadoEn)+(p.ya?" (ya lo tenía de antes)":"")+".":"")+(p.sha?" Código "+p.sha.slice(0,8)+".":"")};
+  if(E==="manual") return {txt:"Subido a mano ✓ (tú lo confirmaste)",cls:"ok",det:""};
+  if(E==="descargado") return {txt:"En Descargas (app anterior) · no se sabe si llegó",cls:"dud",det:"Esta versión no lo reenvía sola para no duplicarlo. Si NO llegó, toca «Enviar ahora»: si el sistema ya lo tenía, no lo duplica."};
+  if(E==="compartido") return {txt:"Compartido (app anterior) · no se sabe si llegó",cls:"dud",det:"Esta versión no lo reenvía sola para no duplicarlo. Si NO llegó, toca «Enviar ahora»: si el sistema ya lo tenía, no lo duplica."};
+  const extra=[]; if(p.bajado) extra.push("guardado en Descargas"); if(p.compartido) extra.push("compartido");
+  const det=[];
+  if(envS.activo&&envS.id===p.id) det.push("Enviando ahora… mira la franja de arriba.");
+  else if(p.err){ det.push("Último intento a las "+envHora(p.ult)+": "+envMotivo(p.err).txt); if(!envMotivo(p.err).fatal&&envProx(p)>Date.now()) det.push("Próximo intento a las "+envHora(envProx(p))+"."); }
+  else det.push("Todavía no se ha intentado enviar.");
+  if(p.intentos) det.push("Intentos: "+p.intentos+".");
+  if(p.sha) det.push("Código "+p.sha.slice(0,8)+".");
+  return {txt:"SIN ENVIAR"+(extra.length?" · también "+extra.join(" y "):""),cls:"bad",det:det.join(" ")};
+}
 const AYUDA_ONEDRIVE="Se guardó en Descargas. Abre la app OneDrive → ＋ → Subir → Descargas → elige el archivo → carpeta NLC_Integral_V1_3 › Recepcion";
 function puedeCompartirZip(){ try{ return !!(navigator.canShare&&navigator.canShare({files:[new File([new Blob(["x"])],"prueba.zip",{type:"application/zip"})]})); }catch(e){ return false; } }
 async function renderCola(msg){
   const L=await cola.listar(); if(vista!=="cola") return;
+  envCache=L; envPintar();
+  const abiertos=new Set([...document.querySelectorAll("details.envb[open]")].map(d=>d.dataset.k));
   document.querySelector(".nav").style.display="none"; document.querySelector("#bar div").style.width="100%";
-  const f=t=>new Date(t).toLocaleString("es-DO",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+  const f=t=>new Date(t).toLocaleString("es-DO",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",hour12:true});
   const share=puedeCompartirZip(), enCurso=!yaGuardado();
-  document.getElementById("app").innerHTML=`<h2>Expedientes guardados</h2>`+((msg||_envMsg)?`<div class="msg">${esc(msg||_envMsg)}</div>`:"")+
-   (L.some(p=>p.estado!=="enviado")?`<div class="msg">Para mandarlo al sistema: toca «⬇ Guardar en el teléfono» y luego súbelo con la app OneDrive a la carpeta NLC_Integral_V1_3 › Recepcion`+(ENLACE_RECEPCION?`, o toca «☁ Subir a Recepción» y elige el archivo en Descargas`:"")+`. El receptor lo toma solo y asigna el número.</div>`:"")+
-   (L.length?L.map(p=>`<div class="paq"><b>${esc(p.nombre)}</b><small>${f(p.creado)} · ${Math.max(1,Math.round((p.tam||0)/1024))} KB</small><span class="est${p.estado==="enviado"?" ok":""}">${EST_TXT[p.estado]||"Pendiente"}</span><div class="bt"><button type="button" data-a="dl" data-id="${p.id}">⬇ Guardar en el teléfono</button>${ENLACE_RECEPCION?`<button type="button" data-a="up" data-id="${p.id}">☁ Subir a Recepción</button>`:""}${share?`<button type="button" data-a="share" data-id="${p.id}">📤 Compartir</button>`:""}${ENDPOINT&&p.estado!=="enviado"?`<button type="button" data-a="send" data-id="${p.id}">Enviar ahora</button>`:""}<button type="button" data-a="del" data-id="${p.id}">🗑 Borrar</button></div></div>`).join(""):(cola._falla?"<div class='msg'>⚠ No se pudo abrir la lista de expedientes guardados. Cierra las otras ventanas o pestañas de la app NLC (también la app instalada) y vuelve a abrirla. Tus expedientes NO se han borrado.</div>":"<div class='msg'>No hay expedientes guardados.</div>"))+
+  const sin=L.filter(p=>p.estado==="pendiente"), dud=L.filter(p=>p.estado==="descargado"||p.estado==="compartido");
+  const tarjeta=p=>{ const e=envEstadoTxt(p), sinE=p.estado!=="enviado"&&p.estado!=="manual";
+    return `<div class="paq${p.estado==="pendiente"?" sin":""}"><b>${esc(p.nombre)}</b><small>${f(p.creado)} · ${envTam(p.tam)}</small><span class="est ${e.cls}">${esc(e.txt)}</span>`+(e.det?`<div class="envdet">${esc(e.det)}</div>`:"")+
+      `<div class="bt">`+(ENDPOINT&&sinE?`<button type="button" class="prim" data-a="send" data-id="${p.id}">Enviar ahora</button>`:"")+(sinE?`<button type="button" data-a="manual" data-id="${p.id}">✔ Ya lo subí a mano</button>`:"")+
+      `<button type="button" data-a="dl" data-id="${p.id}">⬇ Guardar en el teléfono</button>`+(ENLACE_RECEPCION?`<button type="button" data-a="up" data-id="${p.id}">☁ Subir a Recepción</button>`:"")+(share?`<button type="button" data-a="share" data-id="${p.id}">📤 Compartir</button>`:"")+
+      `<button type="button" data-a="del" data-id="${p.id}">🗑 Borrar</button></div></div>`; };
+  document.getElementById("app").innerHTML=`<h2>Expedientes guardados</h2>`+(msg?`<div class="msg">${esc(msg)}</div>`:"")+
+   (sin.length?`<div class="msg"><b>Se envía solo.</b> La app lo manda apenas hay internet y, si falla, lo reintenta sola (cada vez más tarde) y también apenas vuelve la señal o abres la app. No tienes que hacer nada: la franja de arriba te dice cómo va y por qué. Si quieres, toca «Enviar ahora».</div>`:"")+
+   (dud.length?`<div class="msg">${dud.length===1?"Un expediente quedó":"Hay "+dud.length+" expedientes que quedaron"} en «Descargas» o «Compartido» con una versión anterior de la app: <b>no se sabe si llegaron</b>. Esta versión no los reenvía sola para no duplicarlos.</div>`:"")+
+   (L.length?L.map(tarjeta).join(""):(cola._falla?"<div class='msg'>⚠ No se pudo abrir la lista de expedientes guardados. Cierra las otras ventanas o pestañas de la app NLC (también la app instalada) y vuelve a abrirla. Tus expedientes NO se han borrado.</div>":"<div class='msg'>No hay expedientes guardados.</div>"))+
+   (L.some(p=>p.estado!=="enviado"&&p.estado!=="manual")?`<details class="envb" data-k="b"><summary>Plan B: subirlo yo a mano a OneDrive</summary><div class="msg">Toca «⬇ Guardar en el teléfono» y luego súbelo con la app OneDrive a la carpeta NLC_Integral_V1_3 › Recepcion`+(ENLACE_RECEPCION?`, o toca «☁ Subir a Recepción» y elige el archivo en Descargas`:"")+`. El receptor lo toma solo y asigna el número. Después toca «✔ Ya lo subí a mano» en ese expediente para que la app deje de intentar enviarlo.</div></details>`:"")+
+   `<details class="envb" data-k="d"><summary>🔍 Diagnóstico del envío</summary><button type="button" class="cvbtn alt" id="envProbar">Probar la conexión con el sistema</button><button type="button" class="cvbtn alt" id="envCopiar">📋 Copiar informe de envíos</button><div id="envDiag"></div></details>`+
    (enCurso?`<button type="button" class="cvbtn alt" id="otroExp">← Volver al formulario</button>`:`<button type="button" class="cvbtn alt" id="otroExp">➕ Empezar un expediente nuevo</button>`);
+  document.querySelectorAll("details.envb").forEach(d=>{ if(abiertos.has(d.dataset.k)) d.open=true; });
+  const dg=document.getElementById("envDiag"); if(dg) dg.textContent=envS.diag||"";
   document.getElementById("otroExp").onclick=()=>{ if(enCurso){ vista=null; render(); scrollTo(0,0); } else location.reload(); };
+  const pr=document.getElementById("envProbar"); if(pr) pr.onclick=envProbar;
+  const co=document.getElementById("envCopiar"); if(co) co.onclick=()=>envCopiar(document.getElementById("envDiag"));
   document.querySelectorAll(".paq button").forEach(b=>b.onclick=async()=>{
     const id=+b.dataset.id, a=b.dataset.a;
-    if(a==="del"){ if(confirm("¿Borrar este expediente del teléfono? Asegúrate de haberlo subido a OneDrive antes.")){ await cola.borrar(id); renderCola(); } return; }
-    if(a==="send"){ await enviarPendientes(); renderCola(); return; }
+    if(a==="del"){
+      const m=(await cola.listar()).find(x=>x.id===id), sinE=m&&m.estado==="pendiente";
+      if(confirm(sinE?"⚠ Este expediente TODAVÍA NO SE HA ENVIADO. Si lo borras, se pierde.\n\n¿Borrarlo de todos modos?":"¿Borrar este expediente del teléfono? Asegúrate de haberlo subido a OneDrive antes.")){ await cola.borrar(id); delete envS.pm[id]; await envUI(); renderCola(); } return; }
+    if(a==="send"){ if(envS.activo){ renderCola("Ya se está enviando: mira la franja de arriba."); return; } enviarPendientes({ahora:true,forzar:true,ids:[id]}).catch(()=>{}); setTimeout(()=>{ if(vista==="cola") renderCola(); },40); return; }
+    if(a==="manual"){ if(confirm("¿Ya subiste este expediente tú mismo a OneDrive (carpeta Recepcion)?\n\nSi tocas Aceptar, la app deja de intentar enviarlo. Si no estás seguro, toca Cancelar y usa «Enviar ahora»: el sistema no duplica lo que ya recibió.")){ await cola.actualizar(id,{estado:"manual",manualEn:Date.now()}); delete envS.pm[id]; await envUI(); renderCola("Anotado: lo subiste a mano. La app ya no intentará enviarlo."); } return; }
     if(a==="up"){ try{ window.open(ENLACE_RECEPCION,"_blank","noopener"); }catch(e){} renderCola("Se abrió la página de subida de Recepcion: toca «Agregar archivos» y elige en Descargas el archivo de este expediente. Si no está en Descargas, toca primero «⬇ Guardar en el teléfono»."); return; }
     const p=await cola.leer(id); if(!p){ renderCola("No se pudo leer ese expediente del teléfono."); return; }   /* el zip solo se lee aquí */
-    if(a==="dl"){ bajar(p.blob,p.nombre); const m=(await cola.listar()).find(x=>x.id===id); if(m&&m.estado==="pendiente") await cola.marcar(id,"descargado"); renderCola(AYUDA_ONEDRIVE); }
+    if(a==="dl"){ bajar(p.blob,p.nombre); await cola.actualizar(id,{bajado:Date.now()}); await envUI(); renderCola(AYUDA_ONEDRIVE+" La app SIGUE intentando enviarlo sola. Si lo subes tú a OneDrive, después toca «✔ Ya lo subí a mano»."); }
     else if(a==="share"){ const fl=new File([p.blob],p.nombre,{type:"application/zip"});
-      try{ await navigator.share({files:[fl],title:p.nombre}); await cola.marcar(id,"compartido"); renderCola("Compartido desde el menú del teléfono. Comprueba en OneDrive que llegó a la carpeta Recepcion."); }
+      try{ await navigator.share({files:[fl],title:p.nombre}); await cola.actualizar(id,{compartido:Date.now()}); await envUI(); renderCola("Compartido desde el menú del teléfono. Comprueba en OneDrive que llegó a la carpeta Recepcion. La app SIGUE intentando enviarlo sola; si lo subiste tú, toca «✔ Ya lo subí a mano»."); }
       catch(e){ if(!(e&&e.name==="AbortError")){ bajar(p.blob,p.nombre); renderCola("No se pudo compartir. "+AYUDA_ONEDRIVE); } } }
   });
 }
 function netBadge(){const n=document.getElementById("net"); if(n) n.hidden=navigator.onLine!==false;}
-addEventListener("online",()=>{netBadge(); enviarPendientes().then(n=>{ if(n&&vista==="cola") renderCola("✔ Enviado al sistema. Lo está revisando; si algo no cuadra, te avisará."); }).catch(()=>{});});
-addEventListener("offline",netBadge); netBadge();
+addEventListener("online",()=>{ netBadge(); envDisparar("online"); envUI(); });
+addEventListener("offline",()=>{ netBadge(); envUI(); });
+document.addEventListener("visibilitychange",()=>{ if(document.hidden) return; if(envS.activo) envWakeOn(); else envDisparar("visible"); });
+document.addEventListener("resume",()=>envDisparar("visible"));
+netBadge();
+/* Arranque del envío: crea la franja de estado, lee la lista y, si hay algo sin enviar, lo intenta de inmediato. */
+function envIniciar(){
+  try{
+    const fr=document.createElement("div"); fr.id="envFr"; fr.hidden=true; fr.setAttribute("role","status"); fr.setAttribute("aria-live","polite");
+    fr.innerHTML='<button type="button"><span class="envfr-t"></span><span class="envfr-m"></span><span class="envfr-bar" aria-hidden="true"><i></i></span></button>';
+    fr.firstElementChild.onclick=envToque;
+    const est=document.getElementById("estado"); (est&&est.parentNode?est.parentNode:document.body).insertBefore(fr,est||document.body.firstChild);
+  }catch(e){}
+  envUI().then(()=>envDisparar("inicio")).catch(()=>{});
+}
 
 /* ===== Canvas polígono (Bowditch + Shoelace) — skill canvas-poligono-nlc ===== */
 const MAX_LEVELS=10, VERTEX_HIT_RADIUS=32, SEG_HIT=22;
@@ -2224,7 +2528,7 @@ try{ history.replaceState({nlc:"base"},""); }catch(e){}
 if(paso>0) ponerTrampa();
 render();
 fotosRestaurar();
-enviarPendientes().catch(()=>{});
+envIniciar();
 </script>
 </body>
 </html>
