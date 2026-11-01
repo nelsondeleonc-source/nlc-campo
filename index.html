@@ -258,6 +258,30 @@ details.rum summary{font-size:13.5px;color:var(--ink);min-height:40px}
 .aprg b{display:block;font-size:13px;color:var(--muted,#5f685b);margin-bottom:6px}
 .aprc{display:inline-flex;align-items:center;gap:4px;font-size:14px;padding:4px 4px 4px 10px;border-radius:9px;border:1.5px dashed var(--line,#d3d8c9);background:var(--field,#fff);color:var(--ink,#16191c)}
 .aprc button{width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--bad,#b3261e);font-size:20px;line-height:1;cursor:pointer}
+
+/* 2026-11-01-z48 · Notas del caso: dictar con el micrófono del teléfono o pegar el WhatsApp (clave Q_NOTAS_CAMPO) */
+.notas{margin:14px 0 2px;padding-top:12px;border-top:1px dashed var(--line)}
+.notas-h{display:flex;flex-direction:column;gap:2px;margin:0 0 9px}
+.notas-h label{margin:0;font-size:15px;font-weight:700;color:var(--ink)}
+.notas-h small{font-size:12.5px;color:var(--muted);line-height:1.35}
+.notas-bt{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 8px}
+.notas-b{min-height:48px;font:inherit;font-size:15px;font-weight:700;border-radius:10px;border:1.5px solid var(--line);background:var(--field);color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px}
+.notas-b:active{transform:translateY(1px)}
+.notas-b.on{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+.notas-esc{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:13px;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-left:4px solid var(--bad);border-radius:9px;padding:8px 10px;margin:0 0 8px}
+.notas-esc[hidden],.notas-av[hidden]{display:none}
+.notas-esc i{width:10px;height:10px;border-radius:50%;background:var(--bad);flex:none;animation:notasLatido 1s ease-in-out infinite}
+.notas-esc em{flex-basis:100%;font-size:12.5px;color:var(--muted);font-style:italic;overflow-wrap:anywhere}
+.notas-esc em:empty{display:none}
+@keyframes notasLatido{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+@media (prefers-reduced-motion:reduce){.notas-esc i{animation:none}}
+.notas textarea{min-height:190px;line-height:1.45;font-size:16px}
+.notas-pie{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:6px;font-size:12.5px;color:var(--muted)}
+.notas-cnt{flex:none;font-family:ui-monospace,Consolas,monospace;font-size:12px}
+.notas-cnt.casi{color:#e0a43a;font-weight:700}
+html[data-tema="claro"] .notas-cnt.casi{color:#8a5a00}
+.notas-cnt.lleno{color:var(--bad);font-weight:700}
+.notas-av{margin-top:8px;font-size:13px;line-height:1.35;padding:8px 10px;border-radius:9px;background:var(--soft);color:var(--softink);border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -349,7 +373,7 @@ const SRV_PESO=Object.fromEntries(SRV.map(x=>[x[0],x[2]]));
 const SERVF=[...SRV.map(x=>O(x[0],x[1]+" · vale "+x[2]+"%",["Hay"])),N("Q_PORC_SERVICIOS","Porcentaje de servicios (%)")];
 const EDIF=[T("TIPO_DE_INMUEBLE","Tipo de edificación sobre el solar"),D("AREA_CONSTRUCCION_M2","Área de construcción (m²)"),N("EDAD_MEJORAS","Edad de las mejoras (años)"),T("TIPOLOGIA_CONSTRUCTIVA","Tipología constructiva"),L("DISTRIBUCION_ARQUITECTONICA_AMBIENTES","Distribución de ambientes"),L("CARACTERISTICAS_CONSTRUCTIVAS","Características constructivas observadas")];
 const SECC={
- INICIO:{t:"Qué vas a tasar",f:[O("TIPO_TASACION","¿Qué vas a tasar?",["Solar","Terreno preurbanizado","Solar + Mejora con materiales","Apartamento o local","Finca","Vehículo"])]},
+ INICIO:{t:"Qué vas a tasar",f:[O("TIPO_TASACION","¿Qué vas a tasar?",["Solar","Terreno preurbanizado","Solar + Mejora con materiales","Apartamento o local","Finca","Vehículo"]),L("Q_NOTAS_CAMPO","Notas del caso")]},   /* z48: notas en el paso 1 (está en todas las rutas: no se borra al cambiar de tipo) */
  PERS:{t:"Solicitante, propietario y dirección",f:HOUSE},
  TER:{t:"Terreno y linderos",f:TER},
  LEGAL:{t:"Datos legales del inmueble",f:LEGAL},
@@ -482,7 +506,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-11-01-z47"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-11-01-z48"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -910,7 +934,105 @@ document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closes
     catch(er){ alert("No se pudo importar: "+(er&&er.message||er)); } };
   inp.click(); });
 function vregPintar(){ document.querySelectorAll(".vregRes").forEach(e=>e.textContent=vregResumen()); }
+/* ===== 2026-11-01-z48 (EXPERTA-06) · «Notas del caso»: dictar con el micrófono del teléfono o pegar el WhatsApp del encargo.
+   Se guarda como los demás campos (clave Q_NOTAS_CAMPO, texto, máx. 4,000) y viaja al motor como respuesta solo-app:
+   la «IA de campo» del motor la lee y llena SOLO los datos que queden vacíos. No sale en el Word.
+   Dictado: Web Speech API (es-DO; si el teléfono no lo tiene, es-ES), continuo, siempre AGREGA al final; se vuelve a abrir solo
+   tras cada silencio hasta tocar «Parar». Pegar: navigator.clipboard.readText; si el navegador no deja, se explica cómo pegar a mano. ===== */
+var NOTAS_K="Q_NOTAS_CAMPO", NOTAS_MAX=4000;
+var _dic={sr:null,activo:false,lang:"",rein:[],ult:0,tm:null}, _notasAvT=null;
+function notasCntTxt(n){ return n.toLocaleString("en-US")+" / "+NOTAS_MAX.toLocaleString("en-US"); }
+function notasCntCls(n){ return "notas-cnt"+(n>=NOTAS_MAX?" lleno":n>=3600?" casi":""); }
+function notasHTML(){ const v=String(D_[NOTAS_K]||"");
+  return `<div class="notas" id="notasBox"><div class="notas-h"><label for="f_${NOTAS_K}">Notas del caso</label><small>Pega el WhatsApp del encargo o dicta lo que ves. El sistema usa estas notas para llenar los datos que dejes vacíos.</small></div>`+
+    `<div class="notas-bt"><button type="button" class="notas-b" id="notasDic" aria-pressed="false">🎤 Dictar</button><button type="button" class="notas-b" id="notasPeg">📋 Pegar</button></div>`+
+    `<div class="notas-esc" id="notasEsc" role="status" aria-live="polite" hidden><i aria-hidden="true"></i><span>Escuchando… habla normal. Toca «⏹ Parar» para terminar.</span><em id="notasInt"></em></div>`+
+    `<textarea id="f_${NOTAS_K}" data-k="${NOTAS_K}" maxlength="${NOTAS_MAX}" rows="8" placeholder="Ejemplo: el mensaje del banco con el nombre del cliente, la dirección y el teléfono; o «casa de dos niveles, tres habitaciones, techo de losa…»">${esc(v)}</textarea>`+
+    `<div class="notas-pie"><span>También puedes usar el micrófono del teclado.</span><span class="${notasCntCls(v.length)}" id="notasCnt">${notasCntTxt(v.length)}</span></div>`+
+    `<div class="notas-av" id="notasAv" role="status" aria-live="polite" hidden></div></div>`; }
+function notasPintar(){
+  const el=document.getElementById("f_"+NOTAS_K), c=document.getElementById("notasCnt");
+  if(c){ const n=(el?el.value:String(D_[NOTAS_K]||"")).length; c.textContent=notasCntTxt(n); c.className=notasCntCls(n); }
+  const b=document.getElementById("notasDic"), e=document.getElementById("notasEsc");
+  if(b){ b.textContent=_dic.activo?"⏹ Parar":"🎤 Dictar"; b.classList.toggle("on",_dic.activo); b.setAttribute("aria-pressed",_dic.activo?"true":"false"); }
+  if(e) e.hidden=!_dic.activo;
+  if(!_dic.activo){ const it=document.getElementById("notasInt"); if(it) it.textContent=""; } }
+function notasAviso(m){ const a=document.getElementById("notasAv"); if(!a) return; a.textContent=m; a.hidden=false; clearTimeout(_notasAvT); _notasAvT=setTimeout(()=>{ a.hidden=true; },9000); }
+/* corta en n caracteres sin partir un emoji */
+function notasCortar(s,n){ s=String(s||""); if(s.length<=n) return s; s=s.slice(0,n); const c=s.charCodeAt(s.length-1); return (c>=0xD800&&c<=0xDBFF)?s.slice(0,-1):s; }
+/* Agrega al FINAL (nunca borra lo escrito). modo "dic": separa con espacio y pone mayúscula al empezar oración; "peg": deja una línea en blanco. */
+function notasAgregar(t,modo){
+  t=String(t||"").replace(/\r\n?/g,"\n").replace(/[ \t]+\n/g,"\n").trim(); if(!t) return false;
+  const el=document.getElementById("f_"+NOTAS_K), cur=el?el.value:String(D_[NOTAS_K]||"");
+  let sep=""; if(cur) sep=modo==="peg"?(/\n[ \t]*\n\s*$/.test(cur)?"":(/\n$/.test(cur)?"\n":"\n\n")):(/\s$/.test(cur)?"":" ");
+  if(modo!=="peg"&&(!cur.trim()||/[.!?:]\s*$|\n\s*$/.test(cur))) t=t.charAt(0).toUpperCase()+t.slice(1);
+  const todo=cur+sep+t, nv=notasCortar(todo,NOTAS_MAX), cort=nv.length<todo.length;
+  D_[NOTAS_K]=nv; if(el){ el.value=nv; el.scrollTop=el.scrollHeight; } save(); notasPintar();
+  if(cort){ notasAviso("Llegaste al máximo de 4,000 caracteres: lo que sobraba no entró."); if(_dic.activo) notasParar(); }
+  return !cort; }
+async function notasPegar(){
+  const el=document.getElementById("f_"+NOTAS_K), aMano="Mantén el dedo en el cuadro y elige Pegar.";
+  if(!(navigator.clipboard&&navigator.clipboard.readText)){ notasAviso(aMano); if(el) el.focus(); return; }
+  let t=""; try{ t=await navigator.clipboard.readText(); }catch(e){ notasAviso(aMano); if(el) el.focus(); return; }
+  if(!String(t||"").trim()){ notasAviso("No hay texto copiado. En WhatsApp mantén el dedo en el mensaje, toca Copiar y vuelve a tocar «📋 Pegar»."); return; }
+  if(notasAgregar(t,"peg")) notasAviso("✔ Pegado al final de las notas."); }
+/* Une los resultados finales de una sesión de dictado. En Android cada resultado puede traer TODO lo dicho hasta ahí
+   (acumulado): si el nuevo empieza con lo ya unido, lo reemplaza; si repite el final, se ignora; si no, se agrega. */
+function _nzP(w){ return String(w).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,""); }
+function _notasPal(s){ return String(s||"").trim().split(/\s+/).filter(w=>_nzP(w)); }
+function _notasPref(a,b){ if(a.length>b.length) return false; for(let i=0;i<a.length;i++) if(_nzP(a[i])!==_nzP(b[i])) return false; return true; }
+function _notasUnir(segs){ let acc=[]; for(const s of segs){ const w=_notasPal(s); if(!w.length) continue;
+    if(acc.length&&_notasPref(acc,w)) acc=w; else if(acc.length>=w.length&&_notasPref(w,acc.slice(acc.length-w.length))) continue; else acc=acc.concat(w); }
+  return acc; }
+function notasSR(){ return window.SpeechRecognition||window.webkitSpeechRecognition||null; }
+function notasDictar(){
+  if(_dic.activo){ notasParar(); return; }
+  if(!notasSR()){ notasAviso("Este navegador no permite dictar aquí. Usa el micrófono del teclado."); return; }
+  if(String(D_[NOTAS_K]||"").length>=NOTAS_MAX){ notasAviso("Las notas ya tienen 4,000 caracteres (el máximo)."); return; }
+  if(_dic.sr){ const v=_dic.sr; _dic.sr=null; try{ v.abort(); }catch(e){} }
+  if(!_dic.lang){ let l=""; try{ l=localStorage.getItem("nlc_dic_lang")||""; }catch(e){} _dic.lang=l==="es-ES"?"es-ES":"es-DO"; }
+  _dic.activo=true; _dic.rein=[]; _dic.ult=Date.now(); notasPintar(); notasAbrir(); }
+function notasAbrir(){
+  const SR=notasSR(); if(!SR||!_dic.activo) return;
+  let r; try{ r=new SR(); }catch(e){ notasFallo("No se pudo abrir el dictado. Usa el micrófono del teclado."); return; }
+  const s={fin:[],ap:[]}; _dic.sr=r;
+  r.lang=_dic.lang; r.continuous=true; r.interimResults=true; try{ r.maxAlternatives=1; }catch(e){}
+  r.onresult=ev=>{ if(_dic.sr!==r) return; let it="";
+    for(let i=ev.resultIndex;i<ev.results.length;i++){ const x=ev.results[i], t=(x&&x[0]&&x[0].transcript)||""; if(x.isFinal) s.fin[i]=t; else it+=" "+t; }
+    _dic.ult=Date.now();
+    const ses=_notasUnir(s.fin); if(ses.length>s.ap.length){ const nuevo=ses.slice(s.ap.length); s.ap=ses; notasAgregar(nuevo.join(" "),"dic"); }
+    const ie=document.getElementById("notasInt"); if(ie) ie.textContent=it.trim()?"… "+it.trim():""; };
+  r.onerror=ev=>{ if(_dic.sr!==r) return; const c=(ev&&ev.error)||"";
+    if(c==="language-not-supported"&&_dic.lang!=="es-ES"){ _dic.lang="es-ES"; try{ localStorage.setItem("nlc_dic_lang","es-ES"); }catch(e){} return; }   /* «onend» lo vuelve a abrir en es-ES */
+    if(c==="no-speech"||c==="aborted") return;   /* silencio: se vuelve a abrir solo */
+    notasFallo(c==="not-allowed"?"El teléfono no dio permiso al micrófono. Permítelo para esta página o usa el micrófono del teclado.":
+      c==="service-not-allowed"?"Este navegador no deja dictar aquí. Usa el micrófono del teclado.":
+      c==="audio-capture"?"No se encontró el micrófono. Usa el micrófono del teclado.":
+      c==="network"?"El dictado necesita internet. Sin señal, usa el micrófono del teclado.":
+      c==="language-not-supported"?"Este teléfono no tiene el dictado en español. Usa el micrófono del teclado.":
+      "El dictado se detuvo. Tócalo de nuevo o usa el micrófono del teclado."); };
+  r.onend=()=>{ if(_dic.sr===r) _dic.sr=null; else return;
+    if(!_dic.activo){ notasPintar(); return; }
+    if(!document.getElementById("f_"+NOTAS_K)){ notasParar(); return; }
+    const now=Date.now();
+    if(now-_dic.ult>60000){ notasFallo("Se paró el dictado: pasó 1 minuto sin oír nada."); return; }
+    _dic.rein=_dic.rein.filter(t=>now-t<10000); _dic.rein.push(now);
+    if(_dic.rein.length>6){ notasFallo("El dictado se cortó varias veces seguidas. Tócalo de nuevo o usa el micrófono del teclado."); return; }
+    setTimeout(()=>{ if(_dic.activo&&!_dic.sr) notasAbrir(); },300); };   /* dictado continuo: el teléfono corta tras un silencio y se vuelve a abrir */
+  try{ r.start(); }catch(e){ _dic.sr=null;
+    if(_dic.lang!=="es-ES"){ _dic.lang="es-ES"; setTimeout(()=>{ if(_dic.activo&&!_dic.sr) notasAbrir(); },300); return; }
+    notasFallo("No se pudo abrir el dictado. Usa el micrófono del teclado."); } }
+function notasParar(){ _dic.activo=false; const r=_dic.sr;
+  if(r){ try{ r.stop(); }catch(e){} clearTimeout(_dic.tm); _dic.tm=setTimeout(()=>{ if(_dic.sr===r){ _dic.sr=null; try{ r.abort(); }catch(e){} } },2500); }   /* stop() deja llegar la última frase */
+  notasPintar(); }
+function notasFallo(m){ notasParar(); notasAviso(m); }
+/* tras cada render: si se salió del paso 1, se apaga el micrófono; si sigue ahí, se repinta el estado */
+function notasTrasRender(){ if(_dic.activo&&!document.getElementById("f_"+NOTAS_K)) notasParar(); else notasPintar(); }
+document.addEventListener("click",e=>{ const t=e.target; if(!t||!t.closest) return; if(t.closest("#notasDic")) notasDictar(); else if(t.closest("#notasPeg")) notasPegar(); });
+document.addEventListener("input",e=>{ if(e.target&&e.target.id==="f_"+NOTAS_K) notasPintar(); });
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden"&&_dic.activo) notasParar(); });
 function campo(f){
+  if(f[0]==="Q_NOTAS_CAMPO") return notasHTML();
   if(f[0]==="Q_ACC_NO_TIENE") return accHTML();
   if(f[0]==="Q_ACC_SI_TIENE") return "";
   if(f[0]==="Q_REV_01_ESTADO"){ return `<div class="hint">Todo arranca en su respuesta normal: «Sí» en funcionamiento, «Bueno» en estados, «No» en indicadores y fugas (lo que no toques se toma así). Toca solo lo que no esté bien: «No» si algo no funciona, «Sí» si el indicador enciende o hay fuga, o un estado distinto de Bueno. «No aplica» está en el reloj y «No tiene» en limpiaparabrisas trasero y techo corredizo, por si el vehículo no lo trae. Volver a tocar lo elegido regresa a lo normal.</div><button type="button" class="cvbtn alt" id="revTodoB">Todo normal (funciona, Bueno, sin alerta ni fuga)</button>`+campo0(f); }
@@ -999,7 +1121,7 @@ function avisoSuave(k){ const v=D_[k]; if(v==null||String(v).trim()==="") return
 function seccionConteo(id){ const sec=SECC[id]; if(!sec) return null;
   if(id==="FOTOS"){ const n=Object.values(fotos).reduce((a,x)=>a+((x&&x.length)||0),0); return {tot:1,vac:n?0:1}; }
   if(!sec.f||!sec.f.length) return null; let tot=0,vac=0;
-  for(const f of sec.f){ const k=f[0]; if(/__OTRO$/.test(k)||/^Q_(REV_|ACC_|VEH_RAPIDO)/.test(k)) continue;
+  for(const f of sec.f){ const k=f[0]; if(/__OTRO$/.test(k)||/^Q_(REV_|ACC_|VEH_RAPIDO|NOTAS_CAMPO)/.test(k)) continue;
     let h=""; try{ h=campo(f); }catch(e){ h="x"; } if(!h) continue; tot++; const v=D_[k]; if(v==null||String(v).trim()==="") vac++; }
   return {tot,vac}; }
 function semaforoPintar(){ const e=document.getElementById("semaforo"); if(!e||vista==="cola") return; const R=ruta(); let h="";
@@ -1010,7 +1132,7 @@ function semaforoPintar(){ const e=document.getElementById("semaforo"); if(!e||v
   e.innerHTML=`<div class="sb">${h}</div><div class="sc"><span><b>${esc(SECC[R[paso]].t)}</b>${hechos?" · "+hechos:""}</span><span class="lg"><span><i style="background:#a3c21f"></i>completa</span><span><i style="background:#d99a1c"></i>a medias</span><span><i style="background:#c9564a"></i>vacía</span></span></div>${sigPend>=0?`<button type="button" class="sp" data-sigpend="${sigPend}">Ir a lo pendiente ▸ ${esc(SECC[R[sigPend]].t)}</button>`:""}`; e.hidden=false; }
 function resumenVacios(){ const out=[]; const R=ruta();
   for(const id of R){ const sec=SECC[id]; if(!sec||!sec.f||!sec.f.length) continue; const fal=[];
-    for(const f of sec.f){ const k=f[0]; if(/__OTRO$/.test(k)||/^Q_(REV_|ACC_|VEH_RAPIDO)/.test(k)) continue;
+    for(const f of sec.f){ const k=f[0]; if(/__OTRO$/.test(k)||/^Q_(REV_|ACC_|VEH_RAPIDO|NOTAS_CAMPO)/.test(k)) continue;
       let h=""; try{ h=campo(f); }catch(e){ h="x"; } if(!h) continue;
       const v=D_[k]; if(v!=null&&String(v).trim()!=="") continue;
       const cd=(CT[tidActual()]||{})[k]; fal.push(((cd&&cd.l)||f[1]||k).replace(/\s+/g," ")); }
@@ -1020,7 +1142,7 @@ function resumenTexto(L){ const n=L.reduce((a,x)=>a+x.fal.length,0); let t="Qued
   let mostrados=0; for(const x of L){ t+="\n• "+x.t+" ("+x.fal.length+"): "+x.fal.slice(0,3).join("; ")+(x.fal.length>3?"…":""); mostrados++; if(mostrados>=8&&L.length>8){ t+="\n• …y "+(L.length-8)+" sección(es) más"; break; } }
   return t+"\n\nAceptar: guardar así.\nCancelar: volver a revisar."; }
 function render(){
-  if(vista==="cola"){ wakeOff(); renderCola(); return; }
+  if(vista==="cola"){ wakeOff(); if(_dic.activo) notasParar(); renderCola(); return; }
   document.querySelector(".nav").style.display="";
   const R=ruta(); if(paso>=R.length) paso=R.length-1; if(paso<0) paso=0;
   try{localStorage.setItem("nlc_paso",String(paso))}catch(e){}   /* al reabrir, la app vuelve a este paso */
@@ -1091,7 +1213,7 @@ function render(){
     const r=inp.dataset.r; pintar(r);
     inp.addEventListener("change",()=>agregarFotos(r,[...inp.files]).finally(()=>{inp.value="";}));
   });
-  ponerBotonInstalar(); procUI(); Z7.enganchar();
+  ponerBotonInstalar(); procUI(); Z7.enganchar(); notasTrasRender();
 }
 /* ===== Fotos ===== */
 /* Mientras se preparan fotos, «Guardar expediente» queda bloqueado y se ve una franja amarilla arriba. */
@@ -1368,7 +1490,8 @@ function armarJSON(){
   const tid=tidActual(), mp=(MOTOR.map[tid]||{}); const ans={};
   const ok=clavesDe(D_.TIPO_TASACION,D_.N_FINCA_MEJORAS);   /* solo campos del tipo actual */
   Object.keys(D_).forEach(k=>{ if(!ok.has(k)||/__OTRO$/.test(k)) return; const v=valorMotor(k,D_[k]); if(!v) return; if(/^Q_OBRA_[A-Z]+_UNIDAD$/.test(k)){ const b=k.replace(/_UNIDAD$/,""); if(!String(D_[b+"_MED"]||D_[b+"_AREA"]||"").trim()) return; }
-    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z0-9_]+|SM_[A-Z_]+|PORC_SERVICIOS|PLANTILLA_PRUEBA|OBJETIVO_USO_DE_LA_TASACION|PCT_VIAS|PCT_VERDES|OBRAS_PUBLICAS_V|UTILIDAD_PCT|VEH_REG_[A-Z0-9_]+|OBRA_[A-Z_]+|ACC_[A-Z_]+|VEH_RAPIDO_CONFIRMADO)$/.test(k)?k:null); if(id) ans[id]=v; });
+    const id=mp[k]||(/^Q_(REV_\d\d_ESTADO|APT_[A-Z0-9_]+|SM_[A-Z_]+|PORC_SERVICIOS|PLANTILLA_PRUEBA|OBJETIVO_USO_DE_LA_TASACION|PCT_VIAS|PCT_VERDES|OBRAS_PUBLICAS_V|UTILIDAD_PCT|VEH_REG_[A-Z0-9_]+|OBRA_[A-Z_]+|ACC_[A-Z_]+|VEH_RAPIDO_CONFIRMADO|NOTAS_CAMPO)$/.test(k)?k:null); if(id) ans[id]=v; });
+  if(ans.Q_NOTAS_CAMPO) ans.Q_NOTAS_CAMPO=notasCortar(ans.Q_NOTAS_CAMPO,NOTAS_MAX).trim();   /* z48: el receptor rechaza el paquete si pasa de 4,000 */
   { const waDe=(pre)=>{ if(ans[pre+"_WHATSAPP"]) return; const d=String(D_[pre+"_TEL"]||"").replace(/\D/g,""); if(d.length===10) ans[pre+"_WHATSAPP"]="https://wa.me/1"+d; else if(d.length===11&&d[0]==="1") ans[pre+"_WHATSAPP"]="https://wa.me/"+d; };
     if(tid==="APT") for(let n=1;n<=4;n++) waDe("Q_APT_COMP_"+n); else if(clavesDe(D_.TIPO_TASACION,D_.N_FINCA_MEJORAS).has("Q_VEH_REG_COMP_1_WHATSAPP")) for(let n=1;n<=12;n++) waDe("Q_VEH_REG_COMP_"+n); }
   if(tid==="APT"){ for(let n=1;n<=4;n++){ if(String(D_["Q_APT_COMP_"+n+"_UBICACION"]||"").trim()!==""&&!ans["Q_APT_COMP_"+n+"_TIPO"]) ans["Q_APT_COMP_"+n+"_TIPO"]="Oferta"; } }
