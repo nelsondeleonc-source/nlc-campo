@@ -284,7 +284,7 @@ details.rum summary{font-size:13.5px;color:var(--ink);min-height:40px}
 html[data-tema="claro"] .notas-cnt.casi{color:#8a5a00}
 .notas-cnt.lleno{color:var(--bad);font-weight:700}
 .notas-av{margin-top:8px;font-size:13px;line-height:1.35;padding:8px 10px;border-radius:9px;background:var(--soft);color:var(--softink);border:1px solid var(--line)}
-/* 2026-11-01-z50 · envío: franja de estado siempre visible y tarjetas de la lista de expedientes */
+/* 2026-11-03-z51 · envío: franja de estado siempre visible y tarjetas de la lista de expedientes */
 #envFr{position:sticky;top:0;z-index:8}
 #envFr[hidden]{display:none}
 #envFr button{display:block;width:100%;margin:0;border:0;border-radius:0;padding:10px 14px 12px;text-align:left;font:inherit;color:#fff;background:#b3261e;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.35);min-height:56px}
@@ -531,7 +531,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-11-01-z50"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-11-03-z51"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -1683,7 +1683,7 @@ async function exportar(){
   }
 }
 /* ===== Cola: los expedientes guardados esperan en el teléfono hasta que se suben a OneDrive (o se envían, cuando exista ENDPOINT) ===== */
-let ENDPOINT="https://script.google.com/macros/s/AKfycbxQC1rf2L2tZcSYOXhhXf44IL3FucPqn8cbg1N-MfYcpM75BXNmX8orkhZ90dVAdMsW/exec";   /* receptor web del motor: si está apagado o falla, el expediente sigue en el teléfono y se usa «Guardar en el teléfono» */
+let ENDPOINT="https://script.google.com/macros/s/AKfycbwhf5n4WKwjGQwQ0NTWNdJ04RgfKQ4nQo4AOKd9Ghum7zczKuBH8dT1r2PN0nYT4ymfSg/exec";   /* receptor web del motor: si está apagado o falla, el expediente sigue en el teléfono y se usa «Guardar en el teléfono» */
 const ENVIO_CLAVE="5465eddbc2b442bd9fe420ab90431acf5f4c6e57987b46f9bf1aba7ae7d95cd2";
 const ENVIO_MAX=30000000;
 let ENLACE_RECEPCION="https://nlcarquitectos-my.sharepoint.com/:f:/g/personal/lordnlc_nlcarquitectos_onmicrosoft_com/IgDNjJU-7H9SQbXVw3lwnXooAYlZPetBGr3ts6TAqAb0qY8";   /* enlace de «Solicitud de archivos» de OneDrive sobre la carpeta Recepcion: si se rellena, aparece «☁ Subir a Recepción» */
@@ -1708,7 +1708,7 @@ const cola={
   actualizar(id,parche){return this._tx(["m"],"readwrite",t=>{const st=t.objectStore("m"), q=st.get(id); q.onsuccess=()=>{const v=q.result; if(v){Object.assign(v,parche); st.put(v);}};});},   /* z50: anota intentos, motivo del fallo, marcas de bajado/compartido… sin cambiar el estado */
   borrar(id){return this._tx(["p","m"],"readwrite",t=>{t.objectStore("p").delete(id); t.objectStore("m").delete(id);});}
 };
-/* ===== 2026-11-01-z50 · ENVÍO AUTOMÁTICO CON REINTENTOS Y ESTADO SIEMPRE VISIBLE =====
+/* ===== 2026-11-03-z51 · ENVÍO AUTOMÁTICO CON REINTENTOS Y ESTADO SIEMPRE VISIBLE =====
    Por qué un expediente podía quedar «En Descargas · falta subirlo a OneDrive» sin haberse enviado (z49):
    1) «Guardar en el teléfono» y «Compartir» cambiaban su estado a «descargado»/«compartido». El envío (el automático, el de al abrir,
       el de al volver internet y el botón «Enviar ahora») solo miraba los «pendiente»: desde ese toque no se volvía a intentar jamás
