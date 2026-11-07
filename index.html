@@ -346,6 +346,7 @@ details.envb .msg{margin-top:4px}
 <div id="proc" hidden></div>
 <div id="net" hidden>Sin internet · todo lo que captures se guarda en el teléfono</div>
 <div id="bar"><div></div></div>
+<!-- NLC_MODO_APROBAR_V1 -->
 <main id="app"></main>
 <div class="nav"><button class="sec" id="prev">Anterior</button><button id="next">Siguiente</button></div>
 
@@ -531,8 +532,8 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-11-07-z52"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
-try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
+const APP_VER="2026-11-07-z53"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APRB=aprbLeer(); try{ if(!APRB&&localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
 try{D_=JSON.parse(localStorage.getItem("nlc_form")||"{}")}catch(e){}
@@ -1104,8 +1105,77 @@ function iaChip(k){ const t=iaChipTxt(k); return t?`<span class="iachip" title="
 function iaFoto(r){ try{ const tid=tidActual(); const t=tid==="VEH"?IA_FOTO_VEH[r]:((tid==="APT"&&IA_FOTO_APT[r])||IA_FOTO_CASA[r]);
   return t?`<div class="iafoto"><span class="iachip">IA</span> lee esto para llenar: ${esc(t)}.</div>`:""; }catch(e){ return ""; } }
 function iaLeyenda(id,s){ try{ let hay=id==="INICIO"||id==="FOTOS"; if(!hay&&s&&s.f) hay=s.f.some(f=>!!iaChipTxt(f[0])); if(!hay) return "";
-  return `<div class="ialey"><span class="iachip">IA</span> = si no tienes el dato, déjalo vacío: lo llena la IA con lo que subas. Si lo llenas tú, la IA no lo cambia.${id==="FOTOS"?" La IA mira hasta 6 fotos del caso (en vehículos, también hasta 3 documentos): que sean claras y bien encuadradas.":""}</div>`; }catch(e){ return ""; } }
+  return `<div class="ialey"><span class="iachip">IA</span> = si no tienes el dato, déjalo vacío: lo llena la IA con lo que subas. Si lo llenas tú, la IA no lo cambia.${id==="FOTOS"?(tidActual()==="VEH"?" La IA mira hasta 6 fotos del caso (en vehículos, también hasta 3 documentos): que sean claras y bien encuadradas.":" La IA mira la fachada, el entorno y todas las fotos de interior (cocina y baños incluidos); que sean claras."):""}</div>`; }catch(e){ return ""; } }
 (function(){ try{ const c=document.createElement("style"); c.textContent=".iachip{display:inline-block;margin-left:6px;padding:0 8px;border-radius:999px;background:#7030A0;color:#fff;font-size:11.5px;font-weight:700;line-height:19px;vertical-align:1px;white-space:nowrap;letter-spacing:.2px} .ialey{margin:2px 0 10px;padding:7px 10px;border-left:4px solid #7030A0;border-radius:8px;background:rgba(112,48,160,.09);font-size:13px;line-height:1.4} .ialey .iachip,.iafoto .iachip{margin:0 3px 0 0} .iafoto{margin:6px 0 2px;padding:5px 9px;border-left:3px solid #7030A0;border-radius:6px;background:rgba(112,48,160,.08);font-size:12.5px;line-height:1.35}"; document.head.appendChild(c); }catch(e){} })();
+/* ===== 2026-11-07-z53 · MODO APROBAR (pedido de Lord, 7-nov-2026 1:10 p. m.). El botón APROBAR o RECHAZAR del correo del Puente abre
+   index.html?aprobar=<id>&t=<64 hex>&a=aprobar|rechazar. La app muestra SOLO esta pantalla: no toca el formulario, lo guardado del caso ni la cola.
+   Al confirmar manda un zip pequeño por el mismo envío de los expedientes (v:1, k, nombre, sha256, zip_b64, al mismo ENDPOINT):
+   APROBAR_<id>_<AAAAMMDD-HHMM>.zip (o RECHAZAR_...) con un solo archivo, decision.json = {id, t, accion, app, fecha}.
+   El motor lo convierte en Puente/Decisiones/decision_<id>.json (camino V3.52, que valida el token). ===== */
+function aprbLeer(){ try{ const q=new URLSearchParams(location.search); if(!q.has("aprobar")) return null;
+  return {id:String(q.get("aprobar")||""), t:String(q.get("t")||""), a:String(q.get("a")||"").toLowerCase()}; }catch(e){ return null; } }
+function aprbValido(p){ return !!p&&/^[A-Za-z0-9_.-]{3,80}$/.test(p.id)&&/^[a-f0-9]{64}$/.test(p.t)&&(p.a==="aprobar"||p.a==="rechazar"); }
+let _aprb={estado:"inicio",msg:""};
+const APRB_MOT={sin_internet:"no hay internet en el teléfono; para aprobar se necesita conexión.",red:"no se pudo llegar al sistema (señal débil o sin datos).",
+  tiempo:"el sistema no contestó a tiempo (señal lenta).",demasiados_envios:"el sistema recibió muchos envíos en la última hora; espera unos minutos.",
+  sin_clave:"esta copia de la app no trae la clave de envío; avisa a soporte.",app:"la app tuvo un fallo al preparar el envío."};
+function aprbIniciar(){
+  vista="aprobar";
+  try{ document.querySelectorAll(".nav,#semaforo,#bar,#estado,#net").forEach(e=>{ e.style.display="none"; }); }catch(e){}
+  try{ document.title="NLC · Aprobar cambio"; }catch(e){}
+  aprbPintar();
+}
+function aprbPintar(){
+  const app=document.getElementById("app"); if(!app||vista!=="aprobar") return;
+  const p=APRB, ok=aprbValido(p), ap=ok&&p.a==="aprobar", st=_aprb.estado;
+  let h='<div class="aprb"><h2>NLC · Aprobar cambio</h2>';
+  if(!ok){
+    h+='<div class="aprb-msg err">El enlace está incompleto o dañado (falta el cambio, la clave o la acción). Ábrelo otra vez desde el correo del Puente.</div>'+
+       '<button type="button" class="cvbtn alt" id="aprbNo">Cancelar</button></div>';
+    app.innerHTML=h; return;
+  }
+  h+='<div class="aprb-id"><small>Cambio</small><b>'+esc(p.id)+'</b></div>';
+  if(st==="ok"){
+    h+='<div class="aprb-msg ok" role="status" aria-live="polite">'+esc(_aprb.msg)+'</div><button type="button" class="cvbtn alt" id="aprbNo">Volver al formulario</button>';
+  }else{
+    h+='<p class="aprb-p">Vas a <b>'+(ap?'APROBAR':'RECHAZAR')+'</b> este cambio del motor.</p>';
+    if(navigator.onLine===false&&st!=="enviando") h+='<div class="aprb-msg err">Sin internet: para aprobar se necesita conexión.</div>';
+    h+='<button type="button" id="aprbOk" class="aprb-b '+(ap?'si':'no')+'"'+(st==="enviando"?' disabled':'')+'>'+
+       (st==="enviando"?'Enviando…':st==="error"?'Reintentar':'Confirmar: '+(ap?'APROBAR':'RECHAZAR'))+'</button>';
+    if(_aprb.msg) h+='<div class="aprb-msg'+(st==="error"?' err':'')+'" role="status" aria-live="polite">'+esc(_aprb.msg)+'</div>';
+    h+='<button type="button" class="cvbtn alt" id="aprbNo"'+(st==="enviando"?' disabled':'')+'>Cancelar</button>';
+  }
+  app.innerHTML=h+'</div>';
+}
+function aprbNombre(p,ahora){ const d2=n=>String(n).padStart(2,"0");
+  const sello=ahora.getFullYear()+d2(ahora.getMonth()+1)+d2(ahora.getDate())+"-"+d2(ahora.getHours())+d2(ahora.getMinutes());
+  const pre=p.a==="rechazar"?"RECHAZAR_":"APROBAR_";
+  return pre+p.id.slice(0,Math.max(1,101-pre.length-1-sello.length))+"_"+sello+".zip"; }
+async function aprbEnviar(){
+  const p=APRB; if(!aprbValido(p)||_aprb.estado==="enviando"||_aprb.estado==="ok") return;
+  if(navigator.onLine===false){ _aprb={estado:"error",msg:"No se pudo enviar: "+APRB_MOT.sin_internet+" Conéctate y toca «Reintentar»."}; aprbPintar(); return; }
+  if(String(ENVIO_CLAVE).length<24){ _aprb={estado:"error",msg:"No se pudo enviar: "+APRB_MOT.sin_clave}; aprbPintar(); return; }
+  _aprb={estado:"enviando",msg:"Enviando la decisión al motor…"}; aprbPintar();
+  let c=null;
+  try{
+    const ahora=new Date(), nombre=aprbNombre(p,ahora);
+    const z=new JSZip(); z.file("decision.json",JSON.stringify({id:p.id,t:p.t,accion:p.a,app:APP_VER,fecha:ahora.toISOString()}));
+    const prep=await envPreparar(await z.generateAsync({type:"blob"}),nombre,()=>{});
+    const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),90000);
+    try{ const r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:prep.cuerpo,redirect:"follow",signal:ctl.signal}); c=envClasificar(r,await r.text()); }
+    catch(e){ c={ok:false,code:(e&&e.name==="AbortError")?"tiempo":"red"}; }
+    finally{ clearTimeout(to); }
+  }catch(e){ c={ok:false,code:"app"}; }
+  try{ history.replaceState({nlc:"base"},"",location.pathname); }catch(e){}
+  if(c&&c.ok) _aprb={estado:"ok",msg:"Listo. El motor lo aplica en 2 a 5 minutos y te llega un correo con el resultado."};
+  else{ const k=(c&&c.code)||"app"; _aprb={estado:"error",msg:"No se pudo enviar: "+(APRB_MOT[k]||("el sistema contestó «"+k+"»."))+" Toca «Reintentar»."}; }
+  aprbPintar();
+}
+document.addEventListener("click",e=>{ if(vista!=="aprobar") return; const b=e.target&&e.target.closest?e.target.closest("#aprbOk,#aprbNo"):null; if(!b||b.disabled) return; e.preventDefault();
+  if(b.id==="aprbNo"){ try{ history.replaceState(null,"",location.pathname); }catch(_){} location.replace(location.pathname); return; }
+  aprbEnviar(); });
+addEventListener("online",()=>{ if(vista==="aprobar") aprbPintar(); }); addEventListener("offline",()=>{ if(vista==="aprobar") aprbPintar(); });
+(function(){ try{ const c=document.createElement("style"); c.textContent=".aprb{max-width:520px;margin:6px auto 24px} .aprb h2{margin:6px 0 14px} .aprb-id{display:flex;flex-direction:column;gap:3px;padding:12px;border:2px solid var(--borde);border-radius:12px;margin:0 0 12px;overflow-wrap:anywhere} .aprb-id small{opacity:.75} .aprb-id b{font-family:ui-monospace,Consolas,monospace;font-size:15px} .aprb-p{font-size:16px;line-height:1.4;margin:0 0 14px} .aprb-b{display:block;width:100%;min-height:64px;border:0;border-radius:14px;font:inherit;font-size:20px;font-weight:800;color:#fff;cursor:pointer;margin:0 0 12px} .aprb-b.si{background:#1b7f3b} .aprb-b.no{background:#5f6368} .aprb-b:disabled{opacity:.6} .aprb-msg{padding:10px 12px;border-radius:10px;margin:0 0 12px;line-height:1.4;border-left:4px solid #7030A0;background:rgba(112,48,160,.09)} .aprb-msg.ok{border-left-color:#1b7f3b;background:rgba(27,127,59,.13)} .aprb-msg.err{border-left-color:#b3261e;background:rgba(179,38,30,.11)}"; document.head.appendChild(c); }catch(e){} })();
 function campo(f){
   if(f[0]==="Q_NOTAS_CAMPO") return notasHTML();
   if(f[0]==="Q_ACC_NO_TIENE") return accHTML();
@@ -1409,7 +1479,7 @@ function avisoOtraVentana(fuerte){ try{ let d=document.getElementById("avisoVent
   document.body.insertBefore(d,document.body.firstChild); }
   d.textContent=fuerte?"⚠ Las fotos no se pueden guardar ahora: la app está abierta en otra ventana o pestaña. Ciérrala y vuelve a abrir esta.":"⚠ La app está abierta en otra ventana o pestaña. Usa solo una para no perder fotos.";
   }catch(e){} }
-try{ const _bc=new BroadcastChannel("nlc_app_campo"); _bc.onmessage=e=>{ if(e.data==="hola"){ _bc.postMessage("aqui"); avisoOtraVentana(false); } else if(e.data==="aqui") avisoOtraVentana(false); }; _bc.postMessage("hola"); }catch(e){}
+try{ if(APRB) throw 0; const _bc=new BroadcastChannel("nlc_app_campo"); _bc.onmessage=e=>{ if(e.data==="hola"){ _bc.postMessage("aqui"); avisoOtraVentana(false); } else if(e.data==="aqui") avisoOtraVentana(false); }; _bc.postMessage("hola"); }catch(e){}
 async function fotosRestaurar(){
   const todo=await fotosBD.todo(); todo.sort((a,b)=>a.id-b.id);
   todo.forEach(x=>{const f=new File([x.blob],x.nombre,{type:x.tipo}); f._id=x.id; (fotos[x.rol]=fotos[x.rol]||[]).push(f);});
@@ -1543,6 +1613,7 @@ document.getElementById("next").onclick=()=>{
   if(paso<R.length-1){paso++;ponerTrampa();render();scrollTo(0,0)}else exportar();
 };
 addEventListener("popstate",()=>{
+  if(vista==="aprobar") return;
   if(vista==="cola"){ if(yaGuardado()){ location.reload(); return; } vista=null; render(); }   /* expediente ya guardado: se abre uno nuevo */
   else if(paso>0){ paso--; render(); scrollTo(0,0); }
   else return;                              /* en el paso 1, el siguiente «atrás» sale de la app */
@@ -2575,10 +2646,10 @@ addEventListener("online",buscarVersion);
 document.addEventListener("visibilitychange",()=>{ if(document.hidden) return; buscarVersion(); if(vista!=="cola"&&ruta()[paso]==="CANVAS") wakeOn(); });
 /* Historial: base + «trampa» para que el botón atrás vuelva un paso */
 try{ history.replaceState({nlc:"base"},""); }catch(e){}
-if(paso>0) ponerTrampa();
+if(APRB) aprbIniciar(); else { if(paso>0) ponerTrampa();
 render();
 fotosRestaurar();
-envIniciar();
+envIniciar(); }
 </script>
 </body>
 </html>
