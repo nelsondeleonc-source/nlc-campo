@@ -531,7 +531,7 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-11-03-z51"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-11-07-z52"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 try{ if(localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
@@ -969,7 +969,7 @@ var _dic={sr:null,activo:false,lang:"",rein:[],ult:0,tm:null}, _notasAvT=null;
 function notasCntTxt(n){ return n.toLocaleString("en-US")+" / "+NOTAS_MAX.toLocaleString("en-US"); }
 function notasCntCls(n){ return "notas-cnt"+(n>=NOTAS_MAX?" lleno":n>=3600?" casi":""); }
 function notasHTML(){ const v=String(D_[NOTAS_K]||"");
-  return `<div class="notas" id="notasBox"><div class="notas-h"><label for="f_${NOTAS_K}">Notas del caso</label><small>Pega el WhatsApp del encargo o dicta lo que ves. El sistema usa estas notas para llenar los datos que dejes vacíos.</small></div>`+
+  return `<div class="notas" id="notasBox"><div class="notas-h"><label for="f_${NOTAS_K}">Notas del caso</label><small>Pega el WhatsApp del encargo o dicta lo que ves. El sistema usa estas notas para llenar los datos que dejes vacíos.</small></div><div class="iafoto"><span class="iachip">IA</span> lee estas notas para llenar lo que no se ve en las fotos. Dicta: distribución por nivel y baños, despensa, gas, agua potable, tuberías, calidad eléctrica, salidas de teléfono y TV, etapa del sector, deseabilidad, interés del mercado, arteria principal, nivel del apartamento, forma del terreno y orientación (en vehículos: kilometraje).</div>`+
     `<div class="notas-bt"><button type="button" class="notas-b" id="notasDic" aria-pressed="false">🎤 Dictar</button><button type="button" class="notas-b" id="notasPeg">📋 Pegar</button></div>`+
     `<div class="notas-esc" id="notasEsc" role="status" aria-live="polite" hidden><i aria-hidden="true"></i><span>Escuchando… habla normal. Toca «⏹ Parar» para terminar.</span><em id="notasInt"></em></div>`+
     `<textarea id="f_${NOTAS_K}" data-k="${NOTAS_K}" maxlength="${NOTAS_MAX}" rows="8" placeholder="Ejemplo: el mensaje del banco con el nombre del cliente, la dirección y el teléfono; o «casa de dos niveles, tres habitaciones, techo de losa…»">${esc(v)}</textarea>`+
@@ -1056,6 +1056,56 @@ function notasTrasRender(){ if(_dic.activo&&!document.getElementById("f_"+NOTAS_
 document.addEventListener("click",e=>{ const t=e.target; if(!t||!t.closest) return; if(t.closest("#notasDic")) notasDictar(); else if(t.closest("#notasPeg")) notasPegar(); });
 document.addEventListener("input",e=>{ if(e.target&&e.target.id==="f_"+NOTAS_K) notasPintar(); });
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden"&&_dic.activo) notasParar(); });
+/* ===== 2026-11-07-z52 · Marca «IA» (pedido de Lord, 7-nov-2026 12:49 p. m.): cada dato que una IA del motor puede llenar lleva un chip violeta
+   con la fuente de donde lo saca (Título, Plano, Fotos, Notas, Matrícula). En «Fotos y documentos» y en «Notas del caso» se dice qué lee la IA de cada cosa.
+   SOLO PRESENTACIÓN: no cambia datos, claves, el paquete ni el envío. Listas copiadas del motor 2 en producción (7-nov-2026):
+   NLC13_LectorWord (Título y Plano), NLC13_IACampo (fotos y notas; sin parqueo, que lo llena Lord; sin amenazas ni observaciones, que la IA solo avisa)
+   y NLC13_IAVeh (matrícula, BL, factura, fotos y notas). Si el motor cambia esas listas, hay que cambiar estas. ===== */
+var IA_CASA={}, IA_VEH={};
+(function(){
+  function pon(o,ks,t){ for(var i=0;i<ks.length;i++) o[ks[i]]=t; }
+  pon(IA_CASA,["PROPIETARIO","MATRICULA_LIBRO_FOLIO","FECHA_DE_REGISTRO"],"Título");
+  pon(IA_CASA,["DESIGNACION_CATASTRAL","SUPERFICIE_REGISTRADA_M_2","LINDERO_NORTE","LINDERO_SUR","LINDERO_ESTE","LINDERO_OESTE"],"Título/Plano");
+  pon(IA_CASA,["DIMENSION_LINDERO_NORTE","DIMENSION_LINDERO_SUR","DIMENSION_LINDERO_ESTE","DIMENSION_LINDERO_OESTE"],"Plano");
+  pon(IA_CASA,["TIPO_DE_INMUEBLE","TIPOLOGIA_CONSTRUCTIVA","CARACTERISTICAS_CONSTRUCTIVAS","DESCRIPCION_TECNICA_COMPLETA","TOPOGRAFIA","VIAS_DE_ACCESO","TIPO_DE_VIA",
+    "USO_PREDOMINANTE","CONSERVACION_DE_LA_VECINDAD","CALIDAD_DE_LA_VECINDAD","CLASE_SOCIAL","CALIDAD_DESCRIPCION","CONSERVACION_RESUMEN","USO_ACTUAL_TERRENO","CERRAMIENTO",
+    "CARACTERISTICAS_SUELO","INFRAESTRUCTURA_VIAL","EDIFICACIONES_SECTOR","ESTADO_CONSERVACION_MEJORAS","MEJORAS_EDIFICACIONES","MEJORAS_INSTALACIONES","MEJORAS_CULTIVOS",
+    "INFRAESTRUCTURAS_INMUEBLE"],"Fotos/Notas");
+  pon(IA_CASA,["DISTRIBUCION_ARQUITECTONICA_AMBIENTES","ETAPA_DESARROLLO_SECTOR","DESEABILIDAD_DE_LA_VECINDAD","DESEABILIDAD_DEL_INMUEBLE","INTERES_DEL_MERCADO","ARTERIA_PRINCIPAL",
+    "NIVEL_UNIDAD","FORMA_TERRENO","AGUA_RIEGO","DESAGUE_NATURAL","ORIENTACION"],"Notas");
+  var MF=["PAREDES","ENTREPISO","TECHOS","SISTEMA_ESTRUCTURAL","PISOS","PUERTA_PRINCIPAL","PUERTAS_INTERIORES","CLOSETS","VENTANAS","PROTECCION_HIERRO","TERMINACION",
+    "BANOS_MUEBLES","BANOS_MUROS","BANOS_PISOS","BANOS_ACCESORIOS","COCINA_MUEBLES","COCINA_REVESTIMIENTO","COCINA_MESETA","COCINA_TOPE","ELECTRICA_COLOCACION",
+    "PREINSTALACION_AA","SANITARIA_COLOCACION","CONSERVACION_DESCRIPCION"];
+  var MN=["BANOS","DESPENSA","SALIDA_GAS","ELECTRICA_CALIDAD","SALIDAS_TEL_TV","AGUA_POTABLE","TUBERIAS"];
+  ["Q_SM_","Q_APT_"].forEach(function(p){ pon(IA_CASA,MF.map(function(m){ return p+m; }),"Fotos/Notas"); pon(IA_CASA,MN.map(function(m){ return p+m; }),"Notas"); });
+  pon(IA_VEH,["VEHICULO_MARCA","VEHICULO_MODELO","VEHICULO_VERSION","VEHICULO_TIPO","VEHICULO_CHASIS","VEHICULO_PLACA","VEHICULO_COLOR","VEHICULO_PASAJEROS",
+    "VEHICULO_PUERTAS","NUMERO_EJES","MOTOR_CILINDROS","MOTOR_POTENCIA_HP","COMBUSTIBLE","TRACCION","TRANSMISION"],"Matrícula/Fotos");
+  pon(IA_VEH,["VEHICULO_ANO","VEHICULO_CARGA_TON","VEHICULO_VOLUMEN","MOTOR_SERIE","MOTOR_CILINDRAJE_CC","MATRICULA_NUMERO","MATRICULA_ESTATUS","MATRICULA_FECHA_EXPEDICION",
+    "MATRICULA_EMISION","MATRICULA_OPOSICION","REGISTRO_ANTERIOR","PROPIETARIO"],"Matrícula");
+  pon(IA_VEH,["VEHICULO_KILOMETRAJE"],"Fotos/Notas");
+  pon(IA_VEH,["Q_REV_11_ESTADO","Q_REV_12_ESTADO","Q_REV_13_ESTADO","Q_REV_14_ESTADO","Q_REV_15_ESTADO","Q_REV_34_ESTADO","Q_REV_35_ESTADO","Q_REV_38_ESTADO","Q_ACC_PERFIL"],"Fotos");
+})();
+var IA_INT="pisos, puertas, closets, baños (muebles, muros, pisos y accesorios), cocina (muebles, revestimiento, meseta y tope), colocación eléctrica y sanitaria, aire acondicionado";
+var IA_FOTO_CASA={TITULO:"propietario, matrícula, libro y folio, fecha de registro, designación catastral, superficie registrada y linderos",
+  PLANO:"linderos y sus medidas, designación catastral y superficie",
+  ENTORNO:"topografía, vías de acceso, tipo de vía, uso predominante, calidad y conservación de la vecindad, clase social",
+  ACCESO:"topografía, vías de acceso y descripción del terreno", TERRENO:"descripción del terreno, uso actual, suelo y topografía",
+  FACHADA:"tipo de edificación, tipología, paredes, techos, ventanas, protección de hierro, terminación y conservación",
+  INT1:IA_INT, INT2:IA_INT, INT3:IA_INT, INTERIOR:"edificaciones de la finca y su estado de conservación",
+  PATIO:"cerramiento o verja y descripción del terreno", AREAS:"conservación del edificio y calidad constructiva", AZOTEA:"techos",
+  EDIF:"edificaciones e instalaciones de la finca y su estado", MEJORAS:"cultivos y mejoras productivas"};
+var IA_FOTO_APT={TITULO:"propietario, matrícula, libro y folio, fecha de registro, designación catastral y superficie registrada", PLANO:"designación catastral y superficie"};
+var IA_FOTO_VEH={TITULO:"marca, modelo, versión, año, tipo, chasis, placa, color, motor, combustible, tracción, transmisión, datos de la matrícula y propietario",
+  DOCUMENTO:"año, chasis, motor, cilindraje, carga y volumen cuando la matrícula no los trae (factura, DUA o BL)", CHASIS:"chasis o VIN",
+  CARROCERIA:"tipo, color, puertas, placa y estado de carrocería, gomas y pintura", INTERIOR:"tapicería, timón y equipamiento",
+  TABLERO:"kilometraje y equipamiento", MOTOR:"cilindros y combustible", DETALLES:"estado de gomas"};
+function iaChipTxt(k){ try{ return (tidActual()==="VEH"?IA_VEH:IA_CASA)[k]||""; }catch(e){ return ""; } }
+function iaChip(k){ const t=iaChipTxt(k); return t?`<span class="iachip" title="Si no tienes el dato, déjalo vacío: lo llena la IA">IA · ${esc(t)}</span>`:""; }
+function iaFoto(r){ try{ const tid=tidActual(); const t=tid==="VEH"?IA_FOTO_VEH[r]:((tid==="APT"&&IA_FOTO_APT[r])||IA_FOTO_CASA[r]);
+  return t?`<div class="iafoto"><span class="iachip">IA</span> lee esto para llenar: ${esc(t)}.</div>`:""; }catch(e){ return ""; } }
+function iaLeyenda(id,s){ try{ let hay=id==="INICIO"||id==="FOTOS"; if(!hay&&s&&s.f) hay=s.f.some(f=>!!iaChipTxt(f[0])); if(!hay) return "";
+  return `<div class="ialey"><span class="iachip">IA</span> = si no tienes el dato, déjalo vacío: lo llena la IA con lo que subas. Si lo llenas tú, la IA no lo cambia.${id==="FOTOS"?" La IA mira hasta 6 fotos del caso (en vehículos, también hasta 3 documentos): que sean claras y bien encuadradas.":""}</div>`; }catch(e){ return ""; } }
+(function(){ try{ const c=document.createElement("style"); c.textContent=".iachip{display:inline-block;margin-left:6px;padding:0 8px;border-radius:999px;background:#7030A0;color:#fff;font-size:11.5px;font-weight:700;line-height:19px;vertical-align:1px;white-space:nowrap;letter-spacing:.2px} .ialey{margin:2px 0 10px;padding:7px 10px;border-left:4px solid #7030A0;border-radius:8px;background:rgba(112,48,160,.09);font-size:13px;line-height:1.4} .ialey .iachip,.iafoto .iachip{margin:0 3px 0 0} .iafoto{margin:6px 0 2px;padding:5px 9px;border-left:3px solid #7030A0;border-radius:6px;background:rgba(112,48,160,.08);font-size:12.5px;line-height:1.35}"; document.head.appendChild(c); }catch(e){} })();
 function campo(f){
   if(f[0]==="Q_NOTAS_CAMPO") return notasHTML();
   if(f[0]==="Q_ACC_NO_TIENE") return accHTML();
@@ -1074,11 +1124,11 @@ function campo(f){
 function campo0(f){
   if(f[0]===CAR_K) carRefrescar();
   let [k,l,t,o]=f; const v=D_[k]??"";
-  if(f[4]==="g") return `<div class="revrow"><div class="revl">${esc(l)}</div><div class="chips" data-chip="${k}">${o.map(x=>`<button type="button" class="chip${x===(v||(/^Q_REV_\d\d_ESTADO$/.test(k)?revDef(k):v))?" on":""}${aprEs(k,x)?" apr":""}" data-v="${esc(x)}">${esc(aprLbl(k,x))}</button>`).join("")}</div></div>`;
+  if(f[4]==="g") return `<div class="revrow"><div class="revl">${esc(l)}${iaChip(k)}</div><div class="chips" data-chip="${k}">${o.map(x=>`<button type="button" class="chip${x===(v||(/^Q_REV_\d\d_ESTADO$/.test(k)?revDef(k):v))?" on":""}${aprEs(k,x)?" apr":""}" data-v="${esc(x)}">${esc(aprLbl(k,x))}</button>`).join("")}</div></div>`;
   const cd=(CT[tidActual()]||{})[k]; let hint="";
   if(cd){l=cd.l; if(cd.o) o=cd.o; hint=cd.h||"";}
   if(esDist(k)) hint="Escribe la distancia y toca la unidad: Ml (metros lineales) o Km. Ejemplo: 950 Ml o 1.5 Km.";
-  let h=`<label for="f_${k}">${esc(l)}${hint?`<button type="button" class="ib" aria-label="Ver ejemplo" title="Ver ejemplo">i</button>`:""}</label>`+(hint?`<div class="hint">${esc(hint)}</div>`:"");
+  let h=`<label for="f_${k}">${esc(l)}${iaChip(k)}${hint?`<button type="button" class="ib" aria-label="Ver ejemplo" title="Ver ejemplo">i</button>`:""}</label>`+(hint?`<div class="hint">${esc(hint)}</div>`:"");
   /* 2026-10-22-z10 (J14): plantilla del Word por caso. Sin elegir = Actual; un toque elige (no se desmarca). */
   if(k==="Q_PLANTILLA_PRUEBA"){ const cur=v||"Actual (probada)"; return h+`<div class="chips" data-chip="${k}">${o.map(x=>`<button type="button" class="chip${x===cur?" on":""}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div><div class="plbox" style="display:block;border:1.5px solid currentColor;border-radius:10px;padding:10px 12px;margin:8px 0;line-height:1.5;font-size:15px"><b>${cur==="Nueva (en prueba)"?"Estás usando la NUEVA (con campos nuevos)":"Estás usando la ACTUAL (sin campos nuevos)"}</b><br><b>Actual (probada):</b> la plantilla de siempre. NO lleva los campos nuevos: ni el equipamiento del vehículo ni las obras con su unidad.<br><b>Nueva (en prueba):</b> la que SÍ lleva los campos nuevos: equipamiento del vehículo, obras con su unidad y lo que se vaya agregando. Es la que se está probando.</div><div class="hint">Si no tocas nada, sale la Actual (la de siempre). «Nueva (en prueba)» es solo para probar: ese Word va a la carpeta _Pruebas y, si la Nueva falla, el motor usa la Actual y te avisa en el correo.</div>`; }
   if(t==="o"){
@@ -1124,7 +1174,7 @@ document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closes
 ["dragover","drop"].forEach(ev=>document.addEventListener(ev,e=>{ if(!document.getElementById("cargaCarpeta")) return; const dt=e.dataTransfer; if(!dt||![...(dt.types||[])].includes("Files")) return; e.preventDefault(); if(ev==="drop"){ const card=e.target.closest&&e.target.closest(".foto"); const inp=card&&card.querySelector("input[data-r]"); if(inp){ agregarFotos(inp.dataset.r,[...dt.files].filter(f=>/^image\//.test(f.type)||f.type==="application/pdf")); } else cargarClasificando(dt.files); } }));
 function fotosHTML(){
   return `<button type="button" class="cvbtn alt" id="cargaCarpeta" style="margin-bottom:6px">📁 Cargar carpeta de fotos (todas a la vez)</button><div class="hint">Elige todas las fotos de la carpeta. Si se llaman Entorno (1).jpg, Titulo.pdf, Fachada (2).jpg… cada una va a su grupo. En la computadora también puedes arrastrar las fotos aquí: sobre un grupo (van a ese grupo) o sobre cualquier parte (se clasifican por el nombre).</div>`+Z7.selectorHTML()+`<div class="msg">Cada foto se guarda con el nombre que lee el botón «Cargar carpeta completa» del Word (ej. Entorno (1).jpg, Titulo (1).jpg). No necesitas renombrar nada. Toca una foto para moverla de lugar o pasarla a otro grupo. Para quitar una foto equivocada, toca la × roja de su miniatura.</div>`+
-  rolesActuales().map(([r,n,p,pdf])=>`<div class="foto" data-mej="${Z7.tipoMej(r)}"><div class="fh">${ICO(ICO_FOTO[r]||"doc")}<div class="fn"><b>${esc(n)}</b></div><span class="cnt" id="ct_${r}">0</span><button type="button" class="bt-all" id="ba_${r}" data-borrar-todas="${r}" hidden aria-label="Borrar todas las fotos de ${esc(n)}" title="Borrar todas las fotos de este grupo">🗑 Borrar todas</button><label class="add" title="Agregar ${pdf?"fotos o PDF":"fotos"}" aria-label="Agregar ${esc(n)}">+<input type="file" accept="${pdf?"image/*,application/pdf":"image/*"}" multiple data-r="${r}"></label></div><div class="thumbs" id="th_${r}"></div>${Z7.nombreHTML(r,p)}</div>`).join("");
+  rolesActuales().map(([r,n,p,pdf])=>`<div class="foto" data-mej="${Z7.tipoMej(r)}"><div class="fh">${ICO(ICO_FOTO[r]||"doc")}<div class="fn"><b>${esc(n)}</b></div><span class="cnt" id="ct_${r}">0</span><button type="button" class="bt-all" id="ba_${r}" data-borrar-todas="${r}" hidden aria-label="Borrar todas las fotos de ${esc(n)}" title="Borrar todas las fotos de este grupo">🗑 Borrar todas</button><label class="add" title="Agregar ${pdf?"fotos o PDF":"fotos"}" aria-label="Agregar ${esc(n)}">+<input type="file" accept="${pdf?"image/*,application/pdf":"image/*"}" multiple data-r="${r}"></label></div>${iaFoto(r)}<div class="thumbs" id="th_${r}"></div>${Z7.nombreHTML(r,p)}</div>`).join("");
 }
 /* ===== 2026-10-27-z29 · franja fija con versión y estado, resumen antes de guardar, avisos suaves ===== */
 document.addEventListener("click",e=>{ const sp=e.target.closest&&e.target.closest("#semaforo button[data-sigpend]"); if(sp){ paso=Number(sp.dataset.sigpend); render(); window.scrollTo(0,0); return; } const b=e.target.closest&&e.target.closest("#semaforo button[data-sem]"); if(!b) return; paso=Number(b.dataset.sem); render(); window.scrollTo(0,0); });
@@ -1160,12 +1210,12 @@ function resumenVacios(){ const out=[]; const R=ruta();
     for(const f of sec.f){ const k=f[0]; if(/__OTRO$/.test(k)||/^Q_(REV_|ACC_|VEH_RAPIDO|NOTAS_CAMPO)/.test(k)) continue;
       let h=""; try{ h=campo(f); }catch(e){ h="x"; } if(!h) continue;
       const v=D_[k]; if(v!=null&&String(v).trim()!=="") continue;
-      const cd=(CT[tidActual()]||{})[k]; fal.push(((cd&&cd.l)||f[1]||k).replace(/\s+/g," ")); }
+      const cd=(CT[tidActual()]||{})[k]; fal.push(((cd&&cd.l)||f[1]||k).replace(/\s+/g," ")+(iaChipTxt(k)?" (IA)":"")); }
     if(fal.length) out.push({id,t:sec.t,fal}); }
   return out; }
 function resumenTexto(L){ const n=L.reduce((a,x)=>a+x.fal.length,0); let t="Quedaron "+n+" dato(s) vacíos que saldrán como «—» en el Word:\n";
   let mostrados=0; for(const x of L){ t+="\n• "+x.t+" ("+x.fal.length+"): "+x.fal.slice(0,3).join("; ")+(x.fal.length>3?"…":""); mostrados++; if(mostrados>=8&&L.length>8){ t+="\n• …y "+(L.length-8)+" sección(es) más"; break; } }
-  return t+"\n\nAceptar: guardar así.\nCancelar: volver a revisar."; }
+  return t+(L.some(x=>x.fal.some(s=>/ \(IA\)$/.test(s)))?"\n\n(IA) = lo llena la IA con el título, el plano, las fotos o las notas que subiste.":"")+"\n\nAceptar: guardar así.\nCancelar: volver a revisar."; }
 function render(){
   if(vista==="cola"){ wakeOff(); if(_dic.activo) notasParar(); renderCola(); return; }
   document.querySelector(".nav").style.display="";
@@ -1173,7 +1223,7 @@ function render(){
   try{localStorage.setItem("nlc_paso",String(paso))}catch(e){}   /* al reabrir, la app vuelve a este paso */
   const s=SECC[R[paso]];
   const cuerpo=R[paso]==="FOTOS"?fotosHTML():R[paso]==="CANVAS"?canvasHTML():(R[paso]==="REV"?`<div class="msg">Toca el estado de cada renglón. Lo que dejes sin marcar no se envía y lo completas en el Word. Volver a tocar un estado lo quita.</div>`:"")+`<div class="card">${s.f.map(campo).join("")}</div>`;
-  document.getElementById("app").innerHTML=`<div class="paso">Paso ${paso+1} de ${R.length}</div><h2>${s.t}</h2>`+cuerpo+(R[paso]==="FOTOS"||R[paso]==="INICIO"&&hayDatos()?`<button type="button" class="cvbtn alt" id="borrB" style="margin-top:14px">💾 Guardar borrador para seguir en otro aparato</button>`:"")+(R[paso]==="FOTOS"?`<div class="msg">Al tocar «Guardar expediente», todo queda dentro del teléfono (aunque no tengas internet). Después lo guardas en Descargas y lo subes a OneDrive (carpeta Recepcion).</div>`:"")+(R[paso]==="INICIO"?`<div id="instalarHueco"></div><button type="button" class="cvbtn alt" id="abrirExp" style="margin-top:14px">📂 Abrir expediente o borrador (.zip)</button><input type="file" id="abrirIn" accept=".zip,application/zip,application/x-zip-compressed" hidden><div class="gpsr" id="abrirMsg"></div><button type="button" class="cvbtn alt" id="dupExp" style="margin-top:14px">📋 Empezar caso nuevo copiando este (zona, plantilla y obras)</button><button type="button" class="nuevo" id="nuevoExp">🗑 Empezar expediente nuevo (borra todo lo guardado)</button>`:"");
+  document.getElementById("app").innerHTML=`<div class="paso">Paso ${paso+1} de ${R.length}</div><h2>${s.t}</h2>${iaLeyenda(R[paso],s)}`+cuerpo+(R[paso]==="FOTOS"||R[paso]==="INICIO"&&hayDatos()?`<button type="button" class="cvbtn alt" id="borrB" style="margin-top:14px">💾 Guardar borrador para seguir en otro aparato</button>`:"")+(R[paso]==="FOTOS"?`<div class="msg">Al tocar «Guardar expediente», todo queda dentro del teléfono (aunque no tengas internet). Después lo guardas en Descargas y lo subes a OneDrive (carpeta Recepcion).</div>`:"")+(R[paso]==="INICIO"?`<div id="instalarHueco"></div><button type="button" class="cvbtn alt" id="abrirExp" style="margin-top:14px">📂 Abrir expediente o borrador (.zip)</button><input type="file" id="abrirIn" accept=".zip,application/zip,application/x-zip-compressed" hidden><div class="gpsr" id="abrirMsg"></div><button type="button" class="cvbtn alt" id="dupExp" style="margin-top:14px">📋 Empezar caso nuevo copiando este (zona, plantilla y obras)</button><button type="button" class="nuevo" id="nuevoExp">🗑 Empezar expediente nuevo (borra todo lo guardado)</button>`:"");
   if(R[paso]==="INICIO") aprBoton();
   if(R[paso]==="INICIO") cola.listar().then(L=>{ if(!L.length||vista==="cola"||ruta()[paso]!=="INICIO"||document.getElementById("colaB")) return; const b=document.createElement("button"); b.type="button"; b.id="colaB"; b.className="cvbtn alt"; b.style.marginTop="14px"; b.textContent="📦 Expedientes guardados en el teléfono ("+L.length+")"+(L.some(p=>p.estado==="pendiente")?" · ⚠ HAY SIN ENVIAR":""); b.onclick=()=>{vista="cola";ponerTrampa();render();}; document.getElementById("app").appendChild(b); });
   const ab=document.getElementById("abrirExp"), ai=document.getElementById("abrirIn"); if(ab&&ai){ ab.onclick=()=>{ai.value="";ai.click();}; ai.onchange=()=>abrirExpediente(ai.files&&ai.files[0]); }
