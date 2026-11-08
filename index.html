@@ -399,7 +399,7 @@ const SRV_PESO=Object.fromEntries(SRV.map(x=>[x[0],x[2]]));
 const SERVF=[...SRV.map(x=>O(x[0],x[1]+" · vale "+x[2]+"%",["Hay"])),N("Q_PORC_SERVICIOS","Porcentaje de servicios (%)")];
 const EDIF=[T("TIPO_DE_INMUEBLE","Tipo de edificación sobre el solar"),D("AREA_CONSTRUCCION_M2","Área de construcción (m²)"),N("EDAD_MEJORAS","Edad de las mejoras (años)"),T("TIPOLOGIA_CONSTRUCTIVA","Tipología constructiva"),L("DISTRIBUCION_ARQUITECTONICA_AMBIENTES","Distribución de ambientes"),L("CARACTERISTICAS_CONSTRUCTIVAS","Características constructivas observadas")];
 const SECC={
- INICIO:{t:"Qué vas a tasar",f:[O("TIPO_TASACION","¿Qué vas a tasar?",["Solar","Terreno preurbanizado","Solar + Mejora con materiales","Apartamento o local","Finca","Vehículo"]),L("Q_NOTAS_CAMPO","Notas del caso")]},   /* z48: notas en el paso 1 (está en todas las rutas: no se borra al cambiar de tipo) */
+ INICIO:{t:"Qué vas a tasar",f:[O("TIPO_TASACION","¿Qué vas a tasar?",["Solar","Terreno preurbanizado","Solar + Mejora con materiales","Apartamento o local","Finca","Vehículo"]),O("Q_PLANTILLA_PRUEBA","Plantilla del Word",["Actual (probada)","Nueva (en prueba)"]),L("Q_NOTAS_CAMPO","Notas del caso")]},   /* z54: botón de plantilla; z48: notas en el paso 1 (está en todas las rutas: no se borra al cambiar de tipo) */
  PERS:{t:"Solicitante, propietario y dirección",f:HOUSE},
  TER:{t:"Terreno y linderos",f:TER},
  LEGAL:{t:"Datos legales del inmueble",f:LEGAL},
@@ -532,12 +532,12 @@ document.addEventListener("DOMContentLoaded",temaPintar); setTimeout(temaPintar,
 let D_={}, fotos={}, paso=0;
 /* Arranque: si el expediente anterior ya quedó guardado en la cola (nlc_done=1), se empieza uno limpio.
    Una versión nueva de la app NO borra nada: solo se anota la versión (las opciones que ya no existan no se envían). */
-const APP_VER="2026-11-07-z53"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
+const APP_VER="2026-11-08-z54"; try{ const _vp=document.getElementById("verPill"); if(_vp) _vp.textContent="v "+APP_VER; }catch(e){}
 const APRB=aprbLeer(); try{ if(!APRB&&localStorage.getItem("nlc_done")==="1"){ localStorage.removeItem("nlc_form"); localStorage.removeItem("nlc_canvas"); localStorage.removeItem("nlc_paso"); localStorage.removeItem("nlc_done"); localStorage.removeItem("nlc_z7_nom"); try{indexedDB.deleteDatabase("nlc_fotos")}catch(e){} } localStorage.setItem("nlc_ver",APP_VER); }catch(e){}
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}   /* pide al telefono que no borre los datos guardados */
 let vista=null;
 try{D_=JSON.parse(localStorage.getItem("nlc_form")||"{}")}catch(e){}
-D_.Q_PLANTILLA_PRUEBA="Actual (probada)"; /* z46: ya no hay botón «Nueva»; las plantillas mejoradas son las oficiales */
+if(D_.Q_PLANTILLA_PRUEBA!=="Nueva (en prueba)") D_.Q_PLANTILLA_PRUEBA="Actual (probada)"; /* z54 (8-nov-2026, orden de Lord): vuelve el botón «Nueva (en prueba)»; sin tocar = Actual */
 /* ===== 2026-10-24-z14 · Preguntas enlazadas (Apartamento): al llenar una se llena la otra; sigue editable ===== */
 const _anoRef=()=>{ const m=String(D_.FECHA_DE_INSPECCION||"").match(/(20\d\d)/g); return m&&m.length?Number(m[m.length-1]):new Date().getFullYear(); };
 const LINKS=[
